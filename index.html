@@ -1,0 +1,1859 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<title>Portfolio — scene deck (demo figures)</title>
+<style>
+/* ============================================================
+   THEME — everything derives from --accent and the two grounds.
+   Change --accent in .app[data-theme="dark"] / ["light"] and the
+   whole deck (slices, map shading, traces) re-derives from it.
+   ============================================================ */
+.app{
+  --f-data: ui-monospace, "SF Mono", SFMono-Regular, Menlo, Consolas, "Liberation Mono", monospace;
+  --f-ui: system-ui, -apple-system, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+  --f-note: Georgia, "Iowan Old Style", "Times New Roman", serif;
+  --r: 3px;
+}
+.app[data-theme="dark"]{
+  --accent: #E8A33D;                 /* ← base accent. Override here. */
+  --ink:    #0B1315;                 /* ← base ground. Override here. */
+  --ink-2:  color-mix(in oklab, var(--ink) 88%, #7FB2B8);
+  --ink-3:  color-mix(in oklab, var(--ink) 79%, #7FB2B8);
+  --void:   color-mix(in oklab, var(--ink) 94%, #7FB2B8);
+  --line:   color-mix(in oklab, var(--ink) 68%, #8FC0C6);
+  --line-2: color-mix(in oklab, var(--ink) 80%, #8FC0C6);
+  --text:   color-mix(in oklab, #FFFFFF 88%, var(--accent));
+  --text-2: color-mix(in oklab, var(--text) 62%, var(--ink));
+  --text-3: color-mix(in oklab, var(--text) 38%, var(--ink));
+  --accent-txt: var(--accent);
+  --accent-soft: color-mix(in oklab, var(--accent) 26%, var(--ink));
+  --trace: color-mix(in oklab, var(--accent) 34%, var(--ink));
+  --glow: color-mix(in oklab, var(--accent) 16%, transparent);
+  --shade: rgba(0,0,0,.34);
+  color-scheme: dark;
+}
+.app[data-theme="light"]{
+  --accent: #C77A15;                 /* ← light-mode accent. Override here. */
+  --ink:    #E8EDEB;                 /* ← light ground. Override here. */
+  --ink-2:  color-mix(in oklab, var(--ink) 62%, #FFFFFF);
+  --ink-3:  color-mix(in oklab, var(--ink) 82%, #2C4247);
+  --void:   color-mix(in oklab, var(--ink) 86%, #2C4247);
+  --line:   color-mix(in oklab, var(--ink) 74%, #2C4247);
+  --line-2: color-mix(in oklab, var(--ink) 88%, #2C4247);
+  --text:   #16282B;
+  --text-2: color-mix(in oklab, var(--text) 64%, var(--ink));
+  --text-3: color-mix(in oklab, var(--text) 40%, var(--ink));
+  --accent-txt: color-mix(in oklab, var(--accent) 78%, var(--text));
+  --accent-soft: color-mix(in oklab, var(--accent) 22%, var(--ink));
+  --trace: color-mix(in oklab, var(--accent) 40%, var(--ink));
+  --glow: color-mix(in oklab, var(--accent) 12%, transparent);
+  --shade: rgba(20,40,44,.14);
+  color-scheme: light;
+}
+
+*{ box-sizing:border-box; }
+html,body{ height:100%; margin:0; overscroll-behavior:none; }
+body{ background:#0B1315; }
+
+.app{
+  position:fixed; inset:0;
+  display:grid; grid-template-rows:auto 1fr auto; grid-template-columns:minmax(0,1fr);
+  background:var(--ink); color:var(--text);
+  font-family:var(--f-ui);
+  -webkit-font-smoothing:antialiased;
+  transition:background .5s ease, color .5s ease;
+  overflow:hidden;
+}
+
+/* ---------- micro-caps utility label ---------- */
+.cap{
+  font-family:var(--f-ui); font-size:10px; font-weight:600;
+  letter-spacing:.19em; text-transform:uppercase; color:var(--text-3);
+}
+.num{ font-family:var(--f-data); font-variant-numeric:tabular-nums; letter-spacing:-.02em; }
+.note{ font-family:var(--f-note); font-style:italic; color:var(--text-2); }
+
+/* ---------- chrome ---------- */
+.chrome{
+  display:flex; align-items:center; justify-content:space-between;
+  padding:14px 22px 12px; border-bottom:1px solid var(--line-2); gap:16px;
+}
+.mark{ display:flex; align-items:baseline; gap:14px; min-width:0; }
+.mark .dot{ width:7px; height:7px; border-radius:50%; background:var(--accent); flex:none;
+  box-shadow:0 0 0 4px var(--glow); }
+.mark .name{ font-size:13px; font-weight:600; letter-spacing:.01em; white-space:nowrap;
+  overflow:hidden; text-overflow:ellipsis; }
+.mark .asof{ white-space:nowrap; }
+
+.tools{ display:flex; align-items:center; gap:8px; flex:none; }
+.tool{
+  appearance:none; border:1px solid var(--line); background:transparent; color:var(--text-2);
+  border-radius:var(--r); height:30px; padding:0 11px; cursor:pointer;
+  font-family:var(--f-ui); font-size:10.5px; font-weight:600; letter-spacing:.14em;
+  text-transform:uppercase; display:inline-flex; align-items:center; gap:7px;
+  transition:color .2s, border-color .2s, background .2s;
+}
+.tool:hover{ color:var(--text); border-color:var(--text-3); }
+.tool:focus-visible, .rail-item:focus-visible, .nav:focus-visible, .tab:focus-visible,
+.jump:focus-visible{ outline:2px solid var(--accent); outline-offset:2px; }
+.seg{ display:inline-flex; border:1px solid var(--line); border-radius:var(--r); overflow:hidden; }
+.seg .tool{ border:0; border-radius:0; height:28px; }
+.seg .tool[aria-pressed="true"]{ background:var(--accent); color:var(--ink); }
+
+/* ---------- stage ---------- */
+.stage{ position:relative; min-height:0; }
+.pane{ position:absolute; inset:0 62px; overflow:hidden; }
+.canvas{
+  position:absolute; left:50%; top:50%; transform-origin:50% 50%;
+  width:1300px; height:760px;                    /* JS overrides to match the pane */
+}
+
+.nav{
+  position:absolute; top:50%; transform:translateY(-50%);
+  width:40px; height:74px; border:1px solid var(--line); background:transparent;
+  color:var(--text-3); border-radius:var(--r); cursor:pointer; z-index:4;
+  display:grid; place-items:center; transition:color .2s, border-color .2s;
+}
+.nav:hover:not(:disabled){ color:var(--accent-txt); border-color:var(--accent-soft); }
+.nav:disabled{ opacity:.26; cursor:default; }
+.nav.prev{ left:11px; } .nav.next{ right:11px; }
+.nav svg{ width:15px; height:15px; }
+
+/* ---------- graduated rail (nav dots + progress) ---------- */
+.rail{ padding:12px 22px 16px; border-top:1px solid var(--line-2); }
+.rail-track{ display:flex; align-items:flex-end; gap:0; }
+.rail-item{
+  appearance:none; background:transparent; border:0; padding:0; cursor:pointer;
+  flex:1 1 0; text-align:left; position:relative; color:inherit;
+  padding-top:16px;
+}
+.rail-item .tick{
+  height:9px; border-left:1px solid var(--line); display:block; margin-bottom:8px;
+  transition:height .35s cubic-bezier(.2,.8,.2,1), border-color .35s;
+}
+.rail-item[aria-current="true"] .tick{ height:20px; border-left-color:var(--accent); }
+.rail-item .rn{ font-family:var(--f-data); font-size:10px; color:var(--text-3); letter-spacing:0; }
+.rail-item .rl{ display:block; font-size:11px; color:var(--text-3); margin-top:3px;
+  letter-spacing:.02em; transition:color .3s; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
+.rail-item:hover .rl{ color:var(--text-2); }
+.rail-item[aria-current="true"] .rn{ color:var(--accent-txt); }
+.rail-item[aria-current="true"] .rl{ color:var(--text); }
+.rail-item .bar{
+  position:absolute; left:0; right:1px; top:8px; height:2px; background:var(--line-2);
+}
+.rail-item .bar i{ display:block; height:100%; width:0%; background:var(--accent-soft); }
+.rail-item[aria-current="true"] .bar i{ background:var(--accent); }
+
+/* ---------- shared scene furniture ---------- */
+.scene{ position:absolute; inset:0; padding:78px 52px 34px; display:flex; flex-direction:column; }
+.scene-head{ position:absolute; top:38px; left:52px; right:52px;
+  display:flex; align-items:baseline; gap:16px; }
+.scene-head .idx{ font-family:var(--f-data); font-size:11px; color:var(--accent-txt); letter-spacing:.06em; }
+.scene-head .ttl{ font-size:11px; font-weight:600; letter-spacing:.19em; text-transform:uppercase; color:var(--text-2); }
+.scene-head .rule{ flex:1; height:1px; background:var(--line-2); }
+.reveal{ opacity:0; transform:translateY(9px); }
+
+/* big figures */
+.fig{ font-family:var(--f-data); font-variant-numeric:tabular-nums; line-height:.92;
+  letter-spacing:-.045em; color:var(--text); }
+.fig .sym{ color:var(--text-3); letter-spacing:0; }
+.fig.accent{ color:var(--accent-txt); }
+
+.stat{ border-top:1px solid var(--line); padding-top:11px; }
+.stat .k{ display:block; margin-bottom:9px; }
+.stat .v{ font-family:var(--f-data); font-variant-numeric:tabular-nums; font-size:29px;
+  letter-spacing:-.03em; line-height:1; }
+.stat .s{ font-size:11.5px; color:var(--text-3); margin-top:7px; font-family:var(--f-ui); }
+.hidden-val{ color:var(--text-3); font-family:var(--f-ui); font-size:15px; font-style:italic;
+  letter-spacing:0; }
+
+/* ---------- unfilled-placeholder notice ---------- */
+.todo{
+  position:absolute; right:22px; bottom:96px; z-index:20; max-width:330px;
+  background:var(--ink-2); border:1px solid var(--accent-soft); border-left:2px solid var(--accent);
+  border-radius:var(--r); padding:13px 15px; box-shadow:0 12px 34px var(--shade);
+}
+.todo h4{ margin:0 0 6px; font-size:12px; letter-spacing:.04em; }
+.todo p{ margin:0; font-size:12px; line-height:1.55; color:var(--text-2); }
+.todo code{ font-family:var(--f-data); font-size:11px; color:var(--accent-txt); }
+.todo button{ margin-top:10px; }
+
+@media (prefers-reduced-motion: reduce){
+  .app, .rail-item .tick, .tool{ transition:none !important; }
+}
+</style>
+<style>
+/* ============================================================
+   SCENE 0 — Overview
+   ============================================================ */
+.s0{ justify-content:center; }
+.s0 .eyebrow{ margin-bottom:20px; }
+.s0 .headline{ font-size:130px; margin:0 0 6px; }
+.s0 .sub{ font-size:13px; color:var(--text-3); margin-bottom:44px; letter-spacing:.02em; }
+.s0 .stats{ display:grid; grid-template-columns:repeat(3,1fr); gap:38px; max-width:1010px; }
+.s0 .say{ margin-top:40px; font-size:17px; line-height:1.6; max-width:640px; }
+.s0 .ledger{ position:absolute; right:52px; top:92px; text-align:right; }
+.s0 .ledger .cap{ display:block; margin-bottom:8px; }
+.s0 .ledger .lv{ font-family:var(--f-data); font-size:15px; color:var(--text-2); }
+
+/* ============================================================
+   SCENE 1 — Allocation
+   ============================================================ */
+.s1 .body{ display:grid; grid-template-columns:520px 1fr; gap:48px; align-items:center; flex:1; min-height:0; }
+.s1 .ring{ position:relative; width:520px; height:520px; justify-self:center; }
+.s1 .ring svg{ display:block; width:100%; height:100%; overflow:visible; }
+.s1 .centre{ position:absolute; inset:0; display:grid; place-content:center; text-align:center; pointer-events:none; }
+.s1 .centre .cv{ font-family:var(--f-data); font-size:62px; letter-spacing:-.04em; line-height:1; }
+.s1 .centre .ck{ margin-top:11px; }
+.s1 .legend{ display:flex; flex-direction:column; gap:0; }
+.legend-row{ display:grid; grid-template-columns:14px 1fr auto auto; gap:16px; align-items:center;
+  padding:12px 0; border-bottom:1px solid var(--line-2); }
+.legend-row .sw{ width:12px; height:12px; border-radius:2px; }
+.legend-row .lb{ font-size:14.5px; letter-spacing:.01em; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
+.legend-row .vl{ font-family:var(--f-data); font-size:14px; color:var(--text-2); text-align:right; }
+.legend-row .wt{ font-family:var(--f-data); font-size:15px; width:74px; text-align:right; }
+.legend-liab{ margin-top:22px; padding-top:0; border-top:1px dashed var(--line); }
+.legend-liab .cap{ display:block; padding:14px 0 4px; }
+.legend-liab .legend-row .sw{ background:transparent !important; border:1px solid var(--text-3); }
+.legend-liab .legend-row .wt, .legend-liab .legend-row .vl{ color:var(--text-3); }
+.legend-note{ font-size:11.5px; color:var(--text-3); padding-top:12px; }
+
+/* ============================================================
+   SCENE 2 — Coverage & gaps
+   ============================================================ */
+.s2 .lenses{ display:flex; gap:6px; margin:6px 0 22px; }
+.tab{ appearance:none; background:transparent; border:1px solid var(--line); border-radius:var(--r);
+  color:var(--text-3); padding:7px 15px; cursor:pointer; font-family:var(--f-ui);
+  font-size:10.5px; font-weight:600; letter-spacing:.15em; text-transform:uppercase;
+  transition:color .2s, border-color .2s, background .2s; }
+.tab:hover{ color:var(--text); }
+.tab[aria-selected="true"]{ color:var(--ink); background:var(--accent); border-color:var(--accent); }
+.s2 .body{ display:grid; grid-template-columns:1fr 268px; gap:40px; flex:1; min-height:0; }
+.s2 .grid{ display:grid; gap:10px; height:100%; align-content:stretch; grid-auto-rows:1fr; }
+.cell{ position:relative; border:1px solid var(--line-2); border-radius:var(--r);
+  background:var(--void); padding:13px 14px 12px; min-height:96px;
+  display:flex; flex-direction:column; justify-content:space-between; overflow:hidden; }
+.cell .cn{ font-size:13px; line-height:1.3; color:var(--text-3); letter-spacing:.01em; }
+.cell .cw{ font-family:var(--f-data); font-size:24px; letter-spacing:-.03em; color:var(--text-3); }
+.cell .fill{ position:absolute; left:0; right:0; bottom:0; height:0%; background:var(--accent);
+  opacity:.13; }
+.cell.held{ border-color:var(--accent-soft); background:var(--ink-2); }
+.cell.held .cn{ color:var(--text); }
+.cell.held .cw{ color:var(--accent-txt); }
+.cell.none .cw{ font-family:var(--f-ui); font-size:11px; font-weight:600; letter-spacing:.19em;
+  text-transform:uppercase; color:var(--text-3); opacity:.72; }
+.cell.none::after{ content:""; position:absolute; inset:0;
+  background:repeating-linear-gradient(-45deg, transparent 0 7px, var(--line-2) 7px 8px); opacity:.5; }
+.s2 .calls{ display:flex; flex-direction:column; gap:26px; align-content:start; }
+.s2 .say{ margin-top:auto; padding-top:18px; font-size:14.5px; line-height:1.6; }
+
+/* ============================================================
+   SCENE 3 — ETF look-through
+   ============================================================ */
+.s3 .body{ position:relative; flex:1; min-height:0; }
+.s3 .wires{ position:absolute; inset:0; width:100%; height:100%; pointer-events:none; }
+.s3 .col{ position:absolute; top:0; bottom:0; }
+.s3 .col-h{ display:flex; align-items:baseline; justify-content:space-between; gap:10px;
+  padding-bottom:9px; border-bottom:1px solid var(--line); }
+.s3 .col-h .n{ font-family:var(--f-data); font-size:12px; color:var(--text-3); }
+.lt-row{ position:absolute; left:0; right:0; display:grid; align-items:center; gap:10px;
+  grid-template-columns:1fr auto; }
+.lt-row .nm{ font-size:13.5px; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
+.lt-row .nm b{ font-weight:600; }
+.lt-row .mv{ font-family:var(--f-data); font-size:13px; color:var(--text-2); }
+.lt-row.dup .nm{ color:var(--accent-txt); }
+.lt-row.dup .mv{ color:var(--accent-txt); }
+.lt-row .tag{ font-family:var(--f-ui); font-size:9px; font-weight:700; letter-spacing:.15em;
+  text-transform:uppercase; color:var(--ink); background:var(--accent); border-radius:2px;
+  padding:2px 5px; margin-left:8px; vertical-align:1px; }
+.lt-row .barwrap{ position:absolute; left:0; right:0; bottom:-1px; height:1px; background:var(--line-2); }
+.lt-row .barwrap i{ display:block; height:100%; background:var(--text-3); width:0; }
+.lt-row.dup .barwrap i{ background:var(--accent); height:2px; }
+.s3 .payoff{ display:flex; align-items:flex-start; gap:46px; padding-top:18px;
+  border-top:1px solid var(--line); }
+.s3 .payoff .say{ font-size:14.5px; line-height:1.6; max-width:520px; }
+
+/* ============================================================
+   SCENE 4 — Geography
+   ============================================================ */
+.s4 .body{ display:grid; grid-template-columns:560px 1fr; gap:56px; align-items:center; flex:1; min-height:0; }
+.s4 .globe{ position:relative; width:560px; height:560px; justify-self:center; }
+.s4 .globe canvas{ position:absolute; inset:0; width:100%; height:100%; }
+.s4 .headline{ font-size:118px; margin:0 0 2px; }
+.s4 .country{ font-size:23px; font-weight:600; letter-spacing:.01em; margin-bottom:26px; }
+.s4 .country .cc{ font-family:var(--f-data); font-size:13px; color:var(--text-3); margin-left:12px;
+  letter-spacing:.08em; }
+.s4 .say{ font-size:16px; line-height:1.62; max-width:480px; margin-bottom:30px; }
+.s4 .runners{ display:flex; flex-direction:column; gap:0; margin-bottom:30px; max-width:420px; }
+.runner{ display:grid; grid-template-columns:1fr 64px; gap:14px; padding:8px 0;
+  border-bottom:1px solid var(--line-2); font-size:13px; align-items:center; }
+.runner .rv{ font-family:var(--f-data); text-align:right; color:var(--text-2); }
+.jump{ display:inline-flex; align-items:center; gap:11px; text-decoration:none;
+  border:1px solid var(--accent-soft); border-radius:var(--r); padding:11px 17px;
+  color:var(--accent-txt); font-size:11px; font-weight:600; letter-spacing:.15em;
+  text-transform:uppercase; transition:background .25s, color .25s; align-self:flex-start; }
+.jump:hover{ background:var(--accent); color:var(--ink); border-color:var(--accent); }
+.jump svg{ width:13px; height:13px; }
+
+/* ============================================================
+   MAP PAGE
+   ============================================================ */
+.mapview{ position:fixed; inset:0; display:grid; grid-template-rows:auto 1fr;
+  background:var(--ink); color:var(--text); font-family:var(--f-ui); overflow:hidden; }
+.mapwrap{ display:grid; grid-template-columns:minmax(0,1fr) 372px; min-height:0; }
+.mapfield{ position:relative; min-width:0; border-right:1px solid var(--line-2); }
+.mapfield canvas{ position:absolute; inset:0; width:100%; height:100%; }
+.mapfield .plabel{ position:absolute; transform:translate(-50%,-50%); pointer-events:none;
+  text-align:center; white-space:nowrap; }
+.mapfield .plabel .pn{ font-size:11px; font-weight:600; letter-spacing:.13em; text-transform:uppercase;
+  color:var(--text); text-shadow:0 1px 8px var(--ink), 0 0 2px var(--ink); }
+.mapfield .plabel .pv{ font-family:var(--f-data); font-size:19px; color:var(--accent-txt);
+  letter-spacing:-.02em; text-shadow:0 1px 8px var(--ink); }
+.mapfield .plabel .stem{ width:1px; height:26px; background:var(--accent); margin:5px auto 0; opacity:.8; }
+.mappanel{ padding:30px 30px 24px; display:flex; flex-direction:column; min-height:0; overflow:hidden; }
+.mappanel .headline{ font-size:74px; margin:6px 0 2px; }
+.mappanel .hcountry{ font-size:16px; font-weight:600; margin-bottom:26px; }
+.mappanel .legend-key{ display:flex; flex-direction:column; gap:9px; margin-top:20px; padding:18px 0;
+  border-top:1px solid var(--line); border-bottom:1px solid var(--line); margin-bottom:6px; }
+.keyrow{ display:flex; align-items:center; gap:11px; font-size:12px; color:var(--text-2); }
+.keyrow .sw{ width:26px; height:10px; border-radius:2px; flex:none; }
+.ranked{ overflow-y:auto; min-height:0; margin-top:6px; padding-right:4px; }
+.ranked::-webkit-scrollbar{ width:6px; }
+.ranked::-webkit-scrollbar-thumb{ background:var(--line); border-radius:3px; }
+.rank-row{ display:grid; grid-template-columns:11px 1fr auto; gap:12px; align-items:center;
+  padding:9px 0; border-bottom:1px solid var(--line-2); font-size:13px; }
+.rank-row .sw{ width:9px; height:9px; border-radius:2px; }
+.rank-row .rv{ font-family:var(--f-data); font-size:13px; color:var(--text-2); }
+.rank-row.home .rn{ color:var(--accent-txt); font-weight:600; }
+
+/* ---------- portrait reflow: the design canvas becomes 460px wide ---------- */
+.canvas[data-orient="portrait"] .scene{ padding:58px 20px 54px; }
+.canvas[data-orient="portrait"] .scene-head{ top:24px; left:20px; right:20px; }
+.canvas[data-orient="portrait"] .fig{ letter-spacing:-.035em; }
+
+.canvas[data-orient="portrait"] .s0 .headline{ font-size:50px; }
+.canvas[data-orient="portrait"] .s0 .sub{ margin-bottom:26px; }
+.canvas[data-orient="portrait"] .s0 .stats{ grid-template-columns:1fr; gap:16px; }
+.canvas[data-orient="portrait"] .s0 .stat .v{ font-size:23px; }
+.canvas[data-orient="portrait"] .s0 .ledger{ position:static; top:auto; text-align:left; margin-bottom:20px; }
+.canvas[data-orient="portrait"] .s0 .say{ font-size:14px; margin-top:26px; }
+
+.canvas[data-orient="portrait"] .s1 .body{ grid-template-columns:1fr; gap:18px; align-content:center; }
+.canvas[data-orient="portrait"] .s1 .ring{ width:300px; height:300px; }
+.canvas[data-orient="portrait"] .s1 .centre .cv{ font-size:38px; }
+.canvas[data-orient="portrait"] .legend-row{ padding:8px 0; gap:10px; }
+.canvas[data-orient="portrait"] .legend-row .lb{ font-size:13px; }
+.canvas[data-orient="portrait"] .legend-row .wt{ font-size:13px; width:58px; }
+.canvas[data-orient="portrait"] .legend-liab{ margin-top:12px; }
+
+.canvas[data-orient="portrait"] .s2 .body{ grid-template-columns:1fr; grid-template-rows:1fr auto; gap:18px; }
+.canvas[data-orient="portrait"] .s2 .calls{ flex-direction:row; gap:16px; }
+.canvas[data-orient="portrait"] .s2 .calls .stat{ flex:1; min-width:0; }
+.canvas[data-orient="portrait"] .s2 .stat .v{ font-size:22px; }
+.canvas[data-orient="portrait"] .s2 .stat .s{ display:none; }
+.canvas[data-orient="portrait"] .cell{ min-height:64px; padding:9px 10px; }
+.canvas[data-orient="portrait"] .cell .cn{ font-size:11px; }
+.canvas[data-orient="portrait"] .cell .cw{ font-size:17px; }
+.canvas[data-orient="portrait"] .cell.none .cw{ font-size:9.5px; }
+.canvas[data-orient="portrait"] .s2 .say{ font-size:12.5px; padding-top:12px; }
+
+.canvas[data-orient="portrait"] .lt-row .nm{ font-size:11.5px; }
+.canvas[data-orient="portrait"] .lt-row .mv{ font-size:10.5px; }
+.canvas[data-orient="portrait"] .lt-row .tag{ font-size:7.5px; padding:1px 3px; margin-left:5px; }
+.canvas[data-orient="portrait"] .s3 .payoff{ flex-wrap:wrap; gap:18px; }
+.canvas[data-orient="portrait"] .s3 .payoff .say{ flex:1 1 100%; font-size:13px; }
+.canvas[data-orient="portrait"] .s3 .stat .v{ font-size:23px; }
+
+.canvas[data-orient="portrait"] .s4 .body{ grid-template-columns:1fr; gap:20px; align-content:center; }
+.canvas[data-orient="portrait"] .s4 .globe{ width:290px; height:290px; }
+.canvas[data-orient="portrait"] .s4 .headline{ font-size:56px; }
+.canvas[data-orient="portrait"] .s4 .country{ font-size:17px; margin-bottom:14px; }
+.canvas[data-orient="portrait"] .s4 .say{ font-size:13.5px; margin-bottom:16px; }
+.canvas[data-orient="portrait"] .s4 .runners{ margin-bottom:18px; }
+.canvas[data-orient="portrait"] .runner{ font-size:12px; padding:6px 0; }
+
+@media (max-width:820px){
+  .chrome{ flex-wrap:wrap; row-gap:9px; padding:11px 14px 10px; }
+  .mark{ flex:1 1 100%; }
+  .tools{ flex:1 1 100%; justify-content:flex-start; }
+  .tool{ font-size:9.5px; padding:0 9px; letter-spacing:.1em; }
+  .scene{ padding:70px 26px 26px; }
+  .scene-head{ top:32px; left:26px; right:26px; }
+  .mapwrap{ grid-template-columns:minmax(0,1fr); grid-template-rows:1fr auto; }
+  .mapfield{ border-right:0; border-bottom:1px solid var(--line-2); }
+  .mappanel{ max-height:46vh; padding:18px 20px; }
+  .mappanel .headline{ font-size:52px; }
+  .pane{ inset:0; }
+  .nav{ width:44px; height:38px; z-index:6; top:auto; bottom:10px; transform:none;
+        background:color-mix(in oklab, var(--ink) 82%, transparent);
+        backdrop-filter:blur(3px); }
+  .nav.prev{ left:10px; } .nav.next{ right:10px; }
+  .rail-item .rl{ display:none; }
+}
+</style>
+
+</head>
+<body>
+<div id="root"></div>
+
+<!-- Natural Earth 110m country outlines, delta-encoded. Decoded by unpack() below. -->
+<script id="geo" type="text/plain">FJI~Fiji~2+HusCEDIIBMbABJIHMC!ggI4rCbMDJgBLAK;TZA~Tanzania~k4E2gC2CwBCOgBWJcAOQIFUASSkBIEROZINAHIVCZFRCFdLRVDlBNHFLbNNDLCLDVKAWZAFFFAJGBCNJLwCD;ESH~W. Sahara~65DqsBAqBpCBA6BTCFMEgB5CADIAJ0BBMRIfgBXKbIBGRmBAWFCL;CAN~Canada~0oBkd9BfpBHLTCNbJDRbRALMJANnBNjBrBjBRLLXGVOjBZVFVAA1GmDSUJcFiBCmCPQKSFEJQCmBUeNEQcBIHcCiBK2BIgBEWBeMfKqBG8BBUDYMaJXJOHuBDqBSaBoBKkCBBNUDiBIAUQRSCKXXNbHCZcPeEWKgBYTMqBEAYeRcOHSWOYPQTCXiCEeMCMRMQMBKrBQfEXFjBoBZQfARKBQZCbSXaJSAagBEWmBgBDqBKWIQMeGYKmBAYEDSIYQaiBUSFMXLjBPLkBJaPMPBPPTZPaXJTHjBQF+BKUFUGcOIIoBCAUIcUEQOiBNWXOJoCsCHOeMUO0BMIUSEKIAafQlBIbSlBExBD3BCTQbK7ByBUDkBdwBRiBBUKVQOqBeMmBDWZCQQKdOnCWZSPBBToBR9BCNLAfJFPEHFPSPcPEDGrCAhBUJM1BCGOdMXEZMFAJHWjBHnBXJAHFAFDADLCCDFBBFvCfTIhBFTC7BLHDDLHAAI1TA!goCyMWJwCWEKqBDYO2BKUIWWpBK2BQkBEgBWkBAFQnBabHjBVdCBOgCcOYHQ1CX4BgBEI9BHvBNbJIHhCVAGhCETHQP4CDFHkBhBNPjBLtBHQFXNTARHLGpBCxCD1CJRHWJfAFXQTYJ6BFPQSOWR4BJoBYDOuBF!8+B4FoDHiBHcAaGQLoCF2HA8BC6CKAG3BK3BETGyBA5CUnBS9BIjCCgBEPESM3BOLIdICEoBAAE9BO5BFjCErCDDLqBDJPOB8BKdPlBDSHqBFGHfHJL+BASEkBJjEAnBHRJbFDH!o0BiMaIUmBwCWBKlBCOKFIxCJlFOLJfFTCbRwDJrBDxCAJH0BHjBAnBFURQH8BNYELK0BFeMaLWISWMJPXUBWE!ypBiL6CGwBQzCWdQAK5BKNJzBLaZUNVNsCD!47B2GOHYAJF2BBcOsCISQcGpCY3CAXJAHSFpBAXHNJQJ!qhCkLhDJJXVJvBDZFIJwBCYGuBAUIFIoBMgCCyCFmBCYIGKNGhBEdBvDE!u4CwbZiBOHQGHIUGKFYIHQQDCMIOJUJCNFERFBZUNBQJVFjCADFOHJFUNWjBONUFMAFG!qzBiKUDYCEKNMrCC5BKhBCDHwBJlDCfDeVWFgCIoBMoBCfVUHYEQS!y4BqMXPaJcEoBBGGVMkBIDWlBIVBnCZAHuBE!skC2RyBQCKQBSIVIhBFNJ1BYHNdCULCRITQCEKMDOG!68BqLuBAsBGhBUZEZSZBNTCLKHYF!0oB8JmBRwBNiCBDQPI-BMjBCfD!+5BuJSKAMJSlBCXDANjBCBRYCiBHgBCCD;USA~United States of America~0oBkd2TAAHIAEMIE8BMUBiBGUHwCgBCGGCBEMBAEMEAIYKIoBFOPUCGIE2CbFN2BBKLiBTsCAEFQDQbQRIGQDKGAgBOMEIXMvBOPSAMIMKCDJIGBG1CQiBDGEfINACDHIGADQPSBFLFEMGEAITcBBGPJHDRDIGQPDQIAUICEgBNQXGNOLCLIBIZOVYDQEQSkBAKKaBYFOFELDBJJDZtBGPXfJBVKdRZETDRCHEEGBIGGDChBARLRERFfI3BkBFKAQGUJAhBLJZhBpBPJRANSTFJFNZhBXnBAAI9BA1CZCD3BEDLNNJBBFNBHFVBHPVVRfAFbZBRLNElBHRKTEpBDdFTHJEDgBGMWGFLlB!4buOA2GWAWGkBaWNYFMMkBSkBsBoBOAOLKLHVFFTbTNT5BB9CjBnBHfCnCTXGEQLAnCSDNKVYFFFbMPQfQQKVQtBSFKjBMHKZKPB9BWnBGDDoCdcBMJ0BZERMLZGHDLINLFKHLXINABLEHNJdGTLNDANRJILUNIJSBQESLQCSHDJNDSHlBEHGRFfEhBFHJdL0CVSADMwBARNbJlBTdHMLoBAcJGLYJgCNWCiBLkBGQKKFmBCAGiBEYBsDMeD8BK!iT4WOCKIpBSLDDLiBL!8F0SOEOBqBKTGZHTCFBCJ!wR4xBOMTOFDDNGFAHKG!0JiVSCCINEbJWD!0PywBIKJADHGB!iRoxBJEFHCBOG!2OmwBBIHDKD;KAZ~Kazakhstan~k+FgdRQRCBWLKtBHPqB3BOUoBPGCMZLtCAhBJLGDMlBFNCFKpBUJQHAFJdADTLACVbR-BGVT5Bb7BOC0CLCPRPHZGJIGPFHZHJTLFBHWECRUDSEGVFNpBDtBOLDCLNNRARPMPFFSXYOCRwBXiBAuCYYJkBAeMGFgBAGJlBPWLDFWFPPKF2CHKF6BHUJoBEIYYFcIBMWA6BVHIcQ0B6BMLeOiBFMEKOQEKKeDMO;UZB~Uzbekistan~6nF0iBBzC8BN6BcWUgCFcSBWMAEUeAGKIAKPqBTICTQSIQFaMbQbBBFEJdGRaTAFKSEESLWdDAN1BVnBZLVHFXCHDDRdLlBUEMZA;PNG~Papua New Guinea~okH8hCyCccWEOmBOGMVCGQUQOYOBBKSEFEYKBGPCFFpBFdZLTdJhBOEQRINDVABzE!yrHkkCXMLARFLHAFWEMBELEMOBSPBNOAEEAMHOLCDG!ysH0iCIGCMFGJVnBXGFeSKK!iuH6jCSUKGBIHCJJJNDREBCI;IDN~Indonesia~6zGi9BLUQWDKaWbCFQAUVQAWHkBDHZKJNPBJHbKHLPCRDDdJFLTAnBOPEQOMQDOCOLKBWGSDMfIHIZuBE!oqG4gCCQIOSCKOFcAkBZARTdRZfdxBTRNlBTNLTRLXZBJyBEoCoCYASQOUQKHSMIKA!okH8hCC0ETTXDFGbCKTOFFXLTrBRRBhBVHMHCFHAJPLYHQABFhBAHNTDJJeFMHkBKKsBYOUXaNUAkBQYG!u3Gs-BaAWREGRWREVD5BEBSUUMJqBHBKJBHMVKWcDIUaAQLGHHKRVIFFEHPNAVNGC8BNEJHGTBVJAHPKPOzBYZwBK!ktGykCEIsBCEHqBKIOkBEaOXKZJrBBvBLZApBHDJTBQVaCcK!g7Gu+BAMOCCKAULBDOKMHCHNFdERIH!g8GgiCYGKSTJvBAGNcA!q2GimCiBJBMhBIfDAHSDQG!84GqmCCMNQTGAJKNWJ!k0G+lCOBEK1BIINMAGHKG!y1GqnCdPUDMGIGBIHA!o6G2iCPDFJYAGGHI!u-G8kCBPIPGGAMLO;ARG~Argentina~g3Cw1CLqBCWFEDceSDQOKAMVchBOtBEXBEODQEMNIXCTHJGEYOGOHGMTITOBWFMVARMFSWQWEHWZMPaTKJKIYQOfF1BBJNAPNAHHBXQJINBLMTIdBLKDDJJDIJJHFZKFDZKrBOHFVAVQNATOVATFFLlBOXBVITQVQNFHEHAlBYLIVDFUVeGOQIRaCuBqBSCcSYICKVkBYGqBAWRCTMDMMASjBW3B2B!mvCulDUceOgBEJMVCLHlBBAxB;CHL~Chile~wuCwsCMQCQMKFWMaIeQBEGHWXMAmBDIGIPOPWHUCWNYMmBGGAUNWAUPOAWGWNIJsBEaJGGaKIHKKEEKJECMHeLUCMHOPKCYIIOAAQKOsCGTAfODUJCZH1BbFPGLLPBlBKVYRjBFWTIlBaIMvBPFHcNBQrCKNFVBZKBmBpDDhBGTBbMbUtEHjCMFGL!mvCulDAyBmBCHIRIhCNbLXLdZyBUeIMJIPUHQC;COD~Dem. Rep. Congo~80EmjCEWBMEMOOMcJBjBGFOEKFyBWOGDCYRAHNJHPDFLNIRDHJXBBFHBnBECZHJBNELFJANbACHJABENAJULDVGJLPlBjCAXEBFEBGPIFGEIJMACIIEgBhBARKVcdEPBNOtBEdILMFiBQiBGGNEBKEaLQEEFIBgBEGDOUKCIDKCMDGKUOBaKEZaJmBAQHGAODCBMGKCc;SOM~Somalia~y9EmhCNRAzCafQAUPeBgCjCahBArBeFKHKABgBFIFYX4BTgBtB6B5BoBtBsBDMFG;KEN~Kenya~87EqjCfVBN1CvBAXSXIRNjBJPedMEAOGGQAeUgBEGJWHIGQATaA0COSPKFIHCNoBJI;SDN~Sudan~wxEk6BZPBFETNNBPHFDVHCIRDJIFDFQdUABjDaAArBuIAIWDECYIaWOLOPEHGLwBAeJWNMJQBKJGHYCUFjBLJDPERJABENCGGCONMJQLETNHEBILEAEXABDRBHEFBPRPCLgBNGQI;TCD~Chad~+wEiyBC6CTAPeEGHGEKHSIBEWIGAGNELKPYVKbCCIVQbKJFDGRCEHLXVREJeALTBdHNCLNAANJHKdcVKrCGJRTFjBWL2F2C;HTI~Haiti~gtCgyBCMBIFEGIAGNDZAJELHCFmBEIDJJAJNBEHiBG;DOM~Dominican Rep.~gtCmzBAFFHGDCXSAOGGBEIMAAIKAMIJKJFRALGDFHEHQHJ;RUS~Russia~ggI6RdKbBUMOSKGCKFGpBDzCUjCeHKfP7BSJHVIdBHObWCKaEDiBTAJUKKnBMHahBEHYfWHPXzCMfUNAJkBFwCzBoBRSfZCNU5BYRb7BI3BmBSO1CICPjBDbMlCDpCGhFiDkBEMOWEOJaAgBaCURWBcJkBjBgBFQrCiCfONANJdQDIDDALMAEbFTUHaEQVIXUdlBIRIjBAHTbRnBFHVdvBTHhBF5BETMOEAONGTYAKfQZJbCZJfQzBKxBDNLVJVDxBIhBJDPtBHZJXYKMVQhBFVAPJXBTFhBKrBUfGLNdEJJPDJNLDhBGdNLMzB5BbPIH5BWVACLbHXGHXnBDTK5BIJG1CIJGQQVGEGVMmBQFKfAFGdLjBAXKtCXhBAvBYBSXNRYGGLQSQSAOOBMMELOVEVWUWBQaaRQJBPNTFHJTDNEjBPzBHBEdTZHTNSDSRLJgBHAFTEAJMFWBEHFLKLAFhBHNANJPEdHCFJJRABHGDNLdAFGHBLVYBIDFFPDCDJDNPEFBJVFLEBFXFJXLFKHFTQNDDaLXJmCpBKLhBPIPTPQTZZUPhBPCP6BJYHkBO+BE2CaSKCQZMjBGlDRPEkBQEiBuBOELNJOH4BOSFPP2BVUAWIOPTLMNRNgCGOOdCAOSGkBDGN+DdSAVOcCQHqBAiBJaOaNXNMHiDOyCaQLXPZBGLLRAFqBTOVSD8BGEMVUQGGQDgBYOJOrBgBaEKHYFGLUJNLMPZBFLUXdRoBPFPMAMMHWYEJPmBHuBBqBOTTBXoBDoDBRLaPaAsBL8BBIF8BBSE0BLoBAIJUH2BJoBIfE0BEGMWFiCAmCUFMlDa+BIUDMQKFkBDoCEGKgDEAR2CEkBMKOLKcSkBKWXkBKmBFsBGSFkBEPVeJuGQUM6BS8CDuBESIBScGoCFqBGsBDmBUeFTNKLqCIuBBiCKgBKA8C!imFyL2BTFJ+DbsCDmBHsBBQINI1EWnCWjCsBESsBS3CAFJpBFDLYFALsBTTB!A+O0DoBBOOGDP+BEsBUVKlBCAYJETAvBPFJvBANHGHbEKMLKA7C!2iGsGyBDsBK0BWFWxBC9BFlBJRPfD8BP!0lH6ZIWAWIYYoBhBHNgBWYAQRNNSDTAtBGvBNVCdWLJJKDGQ!4iH8J8BAyCMRSzCBlBGtBNOPeD!kpG0H6BMFKhEIqBdkBA!43EqfGFYGGIMEYAFIXEfMLDGJZHaLDB!8-E2GwCDEGiBJiBGHEzBEBEbEXFOHzBA!mwEsZlCBEJgBHiBIAM!spHuK6BGZIjBBpBHEHqBE!ujH6LWHcBgBIEG1CD!AkNWAiBGBE1BGAP!ggI0NXCDHcJAQ;BHS~Bahamas~soCiuBICISAOFANTEN!6nC+sBaACGZCBH!2oC4sBSKDSDDALJHAD;FLK~Falkland Is.~w0C8kDaNUGOJSMFIfGJHTKJJ;NOR~Norway~k2EyO5BKKPbHjBILQVKXFdCXLNGNADQpBDFMVAlBqBjBgBIIHIVANWAeQMHadcNNtBcdEfLHXFzBUN8BTuBXgDrCkDrByBJmBAiBRyCDoCQdGaQ!4qEqHKFgBBoDa5BILSTEJSbCvBNUHhBHrBRRR+BHMIgBB!wzEiHhBMhCEjCDDFfBXJmCFgBGYHmDO!yxE0IxBKnBFQFNFuBFKKgBE;GRL~Greenland~4+CoFsCNwCCeJwCB2FEuESpBIxGEMEwCBkCGsBFUIZO6BJwDHkCEMK7CQNGnCE0BArBgBAacOpCIqBMGUXCeUzBAaKFI-BEcQAKrBJLGeGeOISnBEtBVIQZM8CC7DmB7CIVIfYxBQtCMTOAQLQjBSISVoBfCfRtBAVNPVlBbLNDVfTKPPHWbiBHKJER5BQbHBPKLiCG5BVXERFYVNHrBnBdHAJ7BNvBBzDEhCV6BHuBA-CFzBJEHoFVKH9BJUHuCPiBBJJ8DJmCAYG+BLkES1BLEJ;ATF~Fr. S. Antarctic Lands~gxFyiDQIUCCEFMjBAEZ;TLS~Timor-Leste~84GqmCCFUDQAGDKEHGrBQBL;ZAF~South Africa~0rEq0CKJKGEIkBGULAzCUYBOGIQBWPGLKDUIUCOFGRMBQXUPgBRoBEQwBDaCILDFCHOAIOMOBEJSAJkBFKTQbmBpBmBRKhBKDGNBJEvBDrBONIJAJHFAJJBCBRHPIDBRpBlC;LSO~Lesotho~00Ey0CIILSLEDIHCRRYXMDKG;MEX~Mexico~2sB8oB4BDBE2Ca+BAAHoBAiBYOaKGUGORSAQKiBqBKaSIaENkBAeDMMWESQSEMKMYGKKUHwBJOHMnBoBLiBAEEAMRaEEHcFFJCHODDBEpBAAOLASMCGEAAIdAJSASZZLFRFNARKLC-ChBZRjBHHJZNJNFLIBBFENHJHTTVXRJNTJDFENZPFPLBXVAHVhBCJlBNDKGcaYKQEAEOaaUqBCMKASUAENIFNpBbARDLZRBETLNLKBKHAJdVlBjC;URY~Uruguay~g3Cw1CQBWQIAYOgBcJMGMJOZOPFNETJPANLCPGDBVMpB;BRA~Brazil~i6Cg4CFLKLNNRNXNHAVPPC4B1BkBVARLLLEGNCZHDPEJlBPFHGXFCdHLIFBLKbFNLFAXpBAJZGADdNHNAZJHHZDXTCPDHERdElBYbANEJDChBROTBJLNAEJLNJTGDAJOHBLIRaPSDCDWCKnCDNJHAPODECAHLBAPsBCIHGGEOEBMMSBEFcJCJQFBDRBDPCNJFUASGGFSBYJIHBFMBGGDKIEGKHIBUGKAMOKMCCFIASJeCAPUAYKGFGACIMBIHUlBIBS0BMECQRSIIoBEAWSNiCWMMDOaHsBMiBAiBScamBIIGMsBJkBJQhBgBNYPUFCFQCqBJyBFKDeXeDYRKFMXAjBKPKZGZSTWAeHiBPOZoBjBcJWNM;BOL~Bolivia~yuC6nCcAmBXeDDSEIBQYUaEIIaKOAOIEeFAKaqBAAYMGGOJcCMHGAHVL7BGJUJoBDDZBHSNPdFTWPCHdLZGVLJBPLPOXHTEHDHKLAhBGHTjB;PER~Peru~quCijCVBBEREZQHSCMNIAKFEKUMODKOAKMUCSNBiBKEODUkBFIAiBJMEIDIIUTkBLGVNBHtBX5BlBJTEFpBnCTtBJJFPRPPHGJJVGPSNEIHGCIIBKEKKMHEPOTcHYXIPDPGBiBaOYQEMFIEOBSKNYGAMM;COL~Colombia~uwCk-BDCDNFFHIrBBAQMCAIDBNEAQKIEOJoCLLFAOXRJNCHDLGPDNXhBZFCTNFETBFJZNDFIBALGHKBSZHFELDVEFDRHLCLICEFDNCDMCQPKBEbOJOACFSCSJURICGGFINEFMPOHeMCCKGEAYGAEIeBMESUIDeAIEJUBQMaLMKEGIGY;PAN~Panama~gpC65BBEEODGHBBMHFDNEFTNJADIPIBEMMTIDNDEHBDHNDJABEAPEDFBAJKBIIAGKBGGMBgBPMABCYGQM;CRI~Costa Rica~qlCm5BJCAKGCDECEDILDDDAJFFPFBHFDCIDENHARFDKHOGGBQIGDGMUS;NIC~Nicaragua~wkCo4BFEPHFCNFDErBpBCDEEIBCFEAAJKBEFIGWXIGUFCDIADIEIFIDUCQHYEK;HND~Honduras~8kCq1BHABETGHFVYHFDGJCAKDABGFADFHBCJHDJCLJHBGFAHcTWEUFYAWIUO;SLV~El Salvador~ugC41BICMKKBIEDONAjBLADQL;GTM~Guatemala~u+B21BARKReAAHDABFRLMAANqBABsBWETQAIVSAEZDVN;BLZ~Belize~0gCqzBCDEEINKCFqBJGDIFACrB;VEN~Venezuela~60Cq8BCGHIXKRCFGRFTAKGBOEQSCCEPGBKbKDGRCLLFXFHJDMLLZCPKTHDdAHERTLDdCDHFAAXFDBJLBIdQNGLODAGNCIKAMJOISKBGPHHARcHDLIFIQQAQMAIsBBOKSCMFAF4BBTGIMSCSKESMAIGRMBKIITIAKFGQS;GUY~Guyana~63C0+BRARKHABGLBNJALFJCTIHFJHDEJFFLCPRGFAJUHHHCJSLQIOOAMICWSDUNGCGDMKQGAEMOU;SUR~Suriname~o5Cs+BNFTAAQLBNTDLFAJPELBFOFETaEEDSBYGLUCQKOLe;FRA~France~skE6cMGgBELQBQFEJBAGPMAMKDIKBGIIHIGQMEBKVMrBFhBIBOZCZJHGpBLJHMNEtBVVRLhBJBPeDmBGHZWK0BRITUDCIMAaUMBeM!o7Ci9BTmBHILCBHFAFGJDMdJNBPMTYIYUEK!omE2hBOHESHSJDFPGH;ECU~Ecuador~sqCkgCEQHQXYbINUDQLIJJJDHCBHIFDHMRDJHMNJEHDTIDENKNBJcNaOGKUCGDUO;PRI~Puerto Rico~8wC6yBMCEGFEdCBJEDSA;JAM~Jamaica~6oC8yBcGEGVGNDLHCFOA;CUB~Cuba~wlCwvBmBCUIKIWBoBeWEBGQCSIBGfEvBAQLJFNBHFFNLCVFFFdBHFIFVAPMJABGVASPWJWD;ZWE~Zimbabwe~m2E6vCnBDNJRDHNAHHBZXVjBqBEgBhBIBCFOJQDCKUBOMYIAeFgBEGBODCFQXa;BWA~Botswana~+0E2vCfSTQPYLCFSNGTBTHJEFMVQPCFHCNTXAhCYBAvC0BJIKiBNamBaYICAIIOSEOK;NAM~Namibia~kuE0xCA0CTMjBFDHJFJKPPJRRpCAZDLTdRnBRVARYHOAOKgDBQK2BE8BNQAIGhBQHJzBKAwCXCAiC;SEN~Senegal~k0Dq2BJRLHKDSbIFKCMFMAaOegBEaKGCKFILBFEPF1BBFEHBLEDRWCSJKGKAIFDFNEJFFAFGXA;MLI~Mali~63Dk3BAPJFDLANGDENYGWDCD8CAGPDDVjGiBA6EiDEMaKAOaBA0BNQBOxBGHIdAFDhBMDIRKBGJELBFEBQRUAIFIAOHEFCDJFEDBDIZBHFCHHAAHGFRTXKJBFFLEBJ;MRT~Mauritania~8zDixBEH6CADfGLUBA5BqCCAjB2C4BhBAWkGEEFQ7CABEVEXFDOFEdfZNLALGJBHGBLGJCVDhBCLRT;BEN~Benin~+hEy7BTCFPCzBDDBLNNCLIBEJMBMNIASMEWDICIRUDOA0B;NER~Niger~yqE4vBGkBSUFKJsCbWJeKIAOOABMFABIDANXFBRORHLATCNKJAbLLGJAJJVHXEFEJWBURLHAFGAPZDBLPXCLQAIHyBFCNOPAzBgBJiCrBuCrBkBKMMQH;NGA~Nigeria~+hEy7BAzBENSTA5BKVGDYDWIKKKAMFcMKAOJUBMASISNGCOYOIDMTSRwBLIJgBPGNHHANOFAPmBXIHBJGRATfPNjBA;CMR~Cameroon~qqE82BIOCeMUdADKWSMYPeFEAiBUgBKIEQBMjBJpDBCRHNJDDLFBQrBGAONIAOIQFKfMHSvBURELJHCHGA;TGO~Togo~0gEm4BBMOOCMEEB0BGQRGLXEfFHBhBJLCFUA;GHA~Ghana~ggEm4BBGKMCiBGIDgBMYjCaVFCHJTGZKTJvBCNiCA;CIV~Côte d'Ivoire~q6D44BaCEHECGDEKOFMEEIKGSHQGGgBJUFaKUBInBDZEnBQDBEdJJHAFHGJDJCFEAAPKFLZCHGB;GIN~Guinea~o2Di3BMAQGGDQACKMDGGKCUJKECIKIFGAIIABIIGFCBIMaJGAQJBFKFADFCHJNRECHDLLRRAJETWJNTPBJJJKJWFAR;GNB~Guinea-Bissau~k0Dm3BMDICGDqBCASVGJKLHJBNT;LBR~Liberia~g6Dy6BBGEKFKGIIAKKDebJ3BrBGHAFWXKBKOBIEGGAGJGC;SLE~Sierra Leone~y2D25BUVKDSAMSEMBIIBVYAGFIVLLLHX;BFA~Burkina Faso~k8D04BANGHAHSTCPGDMCKDCFSJEHiBLGEOABMQYCMaEAQFILCDKlBAHEvBBBOEQPFRIJFDHLD;CAF~Central African Rep.~uzEo8BFEfDHCDGPDZMJDDCFOhBFhBPLGHMBQdDNMLUDPJHTfAhBGDMVSBEFKGcJWPBHcBWJQXMJODCKOODUCGmBaAIQMOWSKCG;COG~Congo~ktEw9BLoBFyBbeJWASFIZaHDBHLAHKNLPOTXSLHPWHCJMMUAIJAhBJLIbDDRCFLCJcCkBKCLMTOLeE;GAB~Gabon~goEs+BqBABKGMSBEEHcKMCSBQHKTALLBKVIIQRMlBpBNVAHGHKfoBBAb;GNQ~Eq. Guinea~8mEs+BkBAAcnBCDDIZ;ZMB~Zambia~81E+lCIGmBOKKGUHYESHIFWMGlCSCQPENKBGHCfiBpBDLJhBEdfCnCuBABHEHDLARICCGYCIKSEOHGMQEKIIOSABXFEVNGxBDJGNkBFKC;MWI~Malawi~q3EymCWEMSGeFSGeIBSYCeJEFQPNBPGJBJHFHCXPGVIHDRIXFTJJ;MOZ~Mozambique~y4EmoCSBaGWBIHOAaHSNEKBYE4BEKPgBNOtBU7ByBBQQmBEBFiBGELSTGjBWCKGABMRAHbEZPvBYZGPEBCNDFGfAdXHNLTCDZmCRMKIBIGCKFKCQQOGPKDBdRXHCFdGR;SWZ~eSwatini~62EgzCDKNCNLAHINGBMEGU;AGO~Angola~4oEqkCYDkCAQmBKMWFMEKTOACDKABIcAAOGKDMCOIKBaoBDCIAmBtBABoCegBpBK1BDPJ-CCNJNAXIDNUnCahBCPANHHLbKNLjBLNCF!opEsjCHGFQDCFRQNII;BDI~Burundi~21E2hCAKGGAGVaJABbFJOCILMA;ISR~Israel~s5E4oBDGHBDOGEFCBGMBAILkBNlBGHBBOfIAKFAKDE;LBN~Lebanon~w5EqoBPGITKPMAEKNIDM;MDG~Madagascar~ojF8oCMYCcGKBMDGHNDIEQBKFGJuBrBkERETKfNPxBBPEPKDAHMRCNJXBVMZgBJKAMNUNGLBJIEOPANIJIK;PSE~Palestine~m5E0pBLCCFGBFDENICBW;GMB~Gambia~k0Dq2BYAGFGAKGODEGHGJAJFRKVBEJ;TUN~Tunisia~4mEuqBJnBNJAFRLBROLETDVGJYJQCAMSHCEJMAKGGBUPKGOMAEKKEBShBWAUJE;DZA~Algeria~65DwsBAfmBRWBSFKLaJAPOBKHeDEJFDHXANJNWLaDOJWFmBFyBCUHyBEFKEWDUNMCSSMAGOKS8BDeCkBJKOQAKIOMDSKKOtCsBhCsBfKZCANZJDLvH5E;JOR~Jordan~o5E+oBEFaIsBXKcDEtBKWYJMRCPQXDBDMjBCd;ARE~United Arab Emirates~2kF4uBEAAGSDiBCuBrBEGESLABQECJGAIHKAKDEjCLJb;QAT~Qatar~kkFsuBBPGLIBGGDcFCHF;KWT~Kuwait~kiF2qBEKBGIQPAFJTBQVQC;IRQ~Iraq~87EkpBJb0BXIZBRMDMPkBAIGKDQcOGCOLIDSQUcOKQBQGAAOOMdDPWpBB-BtBhBPbF;OMN~Oman~onF8vBAJIJAHKFDBCPMAKQMIeIQUIEAEJUJIJQJBDGDKEQNCNKBKFGNAHEAKLGLBNILCX1BkCXOrBJP!goF2tBDFGHECFM;VUT~Vanuatu~02HkrCDFARKIESJB!+2HqrCOMHEHJCF;KHM~Cambodia~+oGq3BFZQTcDqBMKPUIEQBclBQKOXCTKRDVjB;THA~Thailand~6qG81BVDbEPUGaTJTAERTABaT2BCQOAOoBMOOCMMHKNCBLRJDEJHDLVVDMDLIjBYrBLrBTdIDITHPPPJTKDKXQBaNKGCOOCDsBYNGEOAEHSAQUCWSUASHM;LAO~Laos~ssG81BTHJQTHILARRTBVPTRADINAFDXOErBNBBNJFGJSNCGMABZKDOSKWcAKUPGFIcOgBuBSQGQDW;MMR~Myanmar~mnGwxBZOPCJYJEKUQQIQHUHEUeMsBXsBBPIRHNCXJLL3BHTpBcZFIdFTRZEHNDPRBRICAPMDBJEHCXSGKTAJOTBLePQEBNIDBJOAIMKGAkBVUBaYDEWOEFScOQHAKROFK;VNM~Vietnam~mqGy4BUJYBJNmBPCbDPEVFPRPftBbNGHQFJTbAJVNR2BHSLMKUEDMMKWGdURUFQoB2BUOOSKqBDoBRQZORUdUHNIPRL;PRK~North Korea~88G8hBEEHBRQCQLELMZKAKDCWOBEZEJKVDBEHCADLFGJGBBDGLBDNBJFSPaLQPKIUADLkBJILOO;KOR~South Korea~45GklBKAKJaDCDUaGOAcHMVERKTCBLERJXQDNT;MNG~Mongolia~s+F+cYDsBTiBJUGYCQKWAiBGWPJLYXaKuBIEQiBKyBHWEWKOMyBE0BJgBPaKcBboBGKkBAQHSIWQBIRDhBEPGPQjBIVMjBFLOKQfUZIhBCjBIbMJHbAfN9DDXhBnBR5BFHJIZPTfHTLFP;IND~India~mlG8rBCKHECOPDdQCMNUAKJURFBYDICKLELjBFADOLJINKBKR3BHBNbLHQQMNIFIOGDOMkBDIpBEASLOfOZcnBcAMfOJAHSGwBHWAmBLCJQGITGHQJGVTR3BTfJpBTfPpCAZFVfOPDdZKHFJZTONyBADTLLDPNLYVcA8BjCARSLRLPhBMJiBEaBWTYaBUIMAKPBGYWQgBQNKJUqCiBeCOMsBIUBCfOFCYUIODmBCCNJHSBWRaNUGQJKOHKYC;BGD~Bangladesh~8hGqwBAQHBCSLhBJNTACIHOJFBEPDLjBENNFGHOHPLIPcMCO4BIJSJCHOMKENGAMkB;BTN~Bhutan~mhGosBKIBOlBBNETHAFOPMFQGMAKG;NPL~Nepal~2+FmsBBgBTCrBHNLdBpChBKTYPSGWQOCGMSESK2BI;PAK~Pakistan~s3F4mBVUZChBDLKQiBSMRMAS7BkCbAXWOMEQMMEUxBANORDFRRPtDIIbgBJBLJDATVJTXmBKkBAEDQCeJATOLQACFSDICKFBNKNOFHNUAIHBHMJHTMJsCNSKGSmBI;AFG~Afghanistan~qvFulBMAYIQHIEIJSBCJKHMGBGGCBSIIiBRmBCEIrCOLKIULKCIHITAIONGJOCOJGHBREBGPANMAUdKPBDEjBAlBJUVBNRDHfKLJDOtBYKSDEJeJGRSDEJKIIA;TJK~Tajikistan~owFylBMVDRRDGJUASZeFDKCGKAHIZDBMaBcIqBDGWIBOEBKEMlBBhBSHHCRFBCFLFJIBKRCHKHDPIFD;KGZ~Kyrgyzstan~uyF+hBGJOBmBGELMFiBKuCAaMBGjBMHIdEHOXDlBQEGHEpBEbHZCCLaEIHSCcPZLPGRHUPHB;TKM~Turkmenistan~qlFqiBKHaFQIQSmBBDLmBTeMESIEYBIGMWoBa2BWAOHAJHDKREFSdKDKREXJBRPBZTRBZLPBJENAPOTEFPEXRHGPNAETWGUHXZRGBQHN;IRN~Iran~yiF4qBNLANFACPJPbNPTERMHBNNFbtBEHFZQFCIMMYCcRIAGGHMOMGBIQWGOKiBE6BNQNOAKDQCaMSCaUQCCSNuBKEJMIgBSECOTWUYWKAUKECMfKHc9CPJbJDREVMbHXRVFfzBLENHHK;SYR~Syria~s5E4oBEDEVOHDJJABREJMJCLIEYFMEUAaHmBDLQLECSHa-CwBZH;ARM~Armenia~ihFukBHAJPJAFFdLCLDHgBBMKDGMGFIUKAQ;SWE~Sweden~6nEkWebIZPLAdOVWAIHHHkBfmBpBWAGLqBEEPOAiCaAkBIInBGVQEOvCmBPgBQQWMVaXGHmBLWbBNSZAFVTZRf;BLR~Belarus~i0EiYYGCGMDWGCKDGOQKEBEQEGGHEXCMWbGAMdAFFHEJDhCHnBIHTOFAHHRWAaJELUHDJoBL;UKR~Ukraine~02E+aICGFeAOMFECISAKKBGeIQDOKOAiBIAGJMGMDIVCLGAKRCPITATKAMFFXFFGlBHBHTCZeJDLEJFGBKNBDcALLBJHDAFJFZHdEFGXGJFdBJEAFNFGJKDFJWRKDCFJToBHiCIKEIDGGeAALcF;POL~Poland~2wE2ZISAINGSoBBGJEVSGKZJnBGLHJELNPABHPBDGLFCFRBJFJPCHNTGFDLwCXWECG8CCKCGI;AUT~Austria~isE4dBKLAEGLSTALGxBHFHVEBEjBHEFBDIAKGEFkBDSGARQNQIWLQIMBKEAK;HUN~Hungary~2vEydOGAGNGXefEZIRDZLDHDAINDFMACJUKUDCDWBQJgBGEB;MDA~Moldova~+yE2dUDaIKGAGIECKMMbACEJOFCDJCTbdFB;ROU~Romania~i0E0fKGMDKEAGJEHBFcNBPJlBMhBBZBJLEDDDHGNFBJLFPPSDYdYJeCKGYFGFKAGCceBUEK;LTU~Lithuania~6yEuYEKTIDMZKVAFHJBALhBHDTaF8BACEOCUK;LVA~Latvia~szEkXMGKYnBMTJNBBD7BAZGAPMNUHSQSAGRSDeMSA;EST~Estonia~8zE2VEEPOGUJIRAdLRECLHCNHBLcHsCA;DEU~Germany~iqE4ZEMFGIIGMBIKQJCFDFGpBOGQaQPOASRFjBEDGJFfFDETACPMPfDLFCJDDCPDXOAGHGVDHEDSBEGQLFTSCODAKYEBKkBLmBQ;BGR~Bulgaria~kwEygBGI8BEmBLQKOCLIHSIMTBXGAMTCPHRGRABPJHEBDBEHKHLJBHGD;GRC~Greece~qwE0iBSASFQIUBALMGNSXDbGQMLELALLFGGOMKJGYQCOVFGKNEIUNARJJRDPVdMJAHIDAFsBJ!2yE8mBBIhBCADZDEJMISBQCAEMD;TUR~Turkey~6-EylBJEHFZBvBGZITALDXGHDBMLKHJIHLCTFPOhBCRLZADIPEVLXANVRNMRNJYVkBAKRqBEcPaFmBAoBQgBIcDSCcLYAWKEIBMaMPGGaDIMS!yyEoiBYFUCCIUIDGbCbSHNORLF;ALB~Albania~+uE+iBAGHEAILKPNBJEXDBAHKLAEGBKKCaKE;HRV~Croatia~4rE+eaMSEIBOOJKJFjBDNGHFFKaamBYBEhBRVFRPEBJJAHPDFKHHCHQCEDQEAFIBCJSF;CHE~Switzerland~6mEmeCEDGWEBKJERBDIJCDDNITDHJJEALQLAFKCGDUAEDYG;LUX~Luxembourg~qkEscEEBKFADBCLGA;BEL~Belgium~skE8bBQFABMTJLCZTLABHSDQCWFaQ;NLD~Netherlands~+kE+ZEIFWFINAEYZPVGPBMFUhBeJUA;PRT~Portugal~y5DmiBSHGMeDGMJGDgBJCIOFOIILOCIHGLDLEAfJBDJANKHGXFZ;ESP~Spain~26D0lBBHMNHHGNHNKBEfKFFLdEFLRICPJJgBP0CI2BAKIqBMIFaKaBCMVQdEBINMHUIMLKFQPEPSzBAVQLBNTVD;IRL~Ireland~y7D2ZEQPUnBOhBDUVLXwBbEMDMeE;NCL~New Caledonia~81HgvCeYHGLFfVRXKAeW;SLB~Solomon Is.~wxH2lCIMfRHHEBcQ!syHgnCHCTFCJQEKK!gzH6mCDERTDLIAISKK!qzHunCGIPAJNUG!4vHglCIINDHNOK;NZL~New Zealand~04Hg-CiBXKRIFELQJKSQHIIAKXcLIIMPATITmBbS9BJBHMRcVeL!69Hw8CTcRIDFJBOTHLXHAJQHEfJRbdJPIBOMQGIUQYANKGEQSIQCMHMCLiBRBFIAO;AUS~Australia~25G+2CrBQLWhBCTDfENMFBVOfAXPLDALMDEFBHEPTvBCNJNAHJHBRNRBJKKHTSOALTfCLGFAXKPCQIPUFKJSHQAgBJKHkBFgBhBCVQRISKDHJILKGCRSTMDAFKCAFWFQKMOeCFLMRKFDFKLOHMCSDALPHMBOEOKmBKcHKMFMHIHCCINWCIgCoBSGCIWIQHS1BDdEREDDHKdKJGMAOGCCKIMAWISQJSSBMESEMGCGUBMIQ4BgBDGOOIYKDIKGDEYsBoBIgBBOKUAUJeDeJURMPcFUJMHgBCINIZATKXShBNELLETSTHvBJNNJdLHTDGJFRJQTEMLENIJBRRUNIJSRJCLZXEFdNPAVLnBC3BQVA!gpHg9COCCcHGBUHFPORBNRDPLTAJkBKeH;LKA~Sri Lanka~m6F06BDYdMJRDfKlBQOWmB;CHN~China~i5F8hBBLQFTnB4BNQpBuBIMJCVSBSPIBGQUMgBIQUHaIK6BGoBSYiB+DEgBOcAKIcLkBHiBBaHgBTJPMNkBGWLkBHQPQFiBDSECHVPRHPIjBAFJcnBaKgBPAJUXOFANNDULcDeAiBGUIewBIWoBGcSIUkBASHmBHTeHYPWZDTIGUDcLAAMNNHMjBKEMTAJHPQZMRQfGPKZGMJDHSPLLtBYNOVCLKMQUEAKSGaPUKOAEMfGJMVMLQYMIWOWQQASNGEMOIJkBLChB2BVc9BoBZCNKHHNMdMZEFYNAFPGHdHLEVFLJELTDLJRMnBEXICaLABPPIbNGRNDDVXECZWTAjBJFHLlBBIJJNPKTFZOVSRCJFLAPFLGNQBRNG1BHRJRDFLNBVPRFJGfPVPFXQCAJHLCTXZlBHFRRJHTCJNDHCFVIDDFWJQFYEINeDIHkBLCF!8tGizBTHARMLYFMCGIPWRM;TWN~Taiwan~02G0uBX4BLTBPMVSRMIDM;ITA~Italy~unE0eOECDWDGIgBGBKGKRBTICKDIIKWMMSYUSAGEFE4BcCEDILJTDJOQIBMJCLUJCAHKPPZHBHJNDJJPAnBZNLHXdJfQCJLDFPIHHHCFUEOHEEKBEHSCKDCJ!wqE8kBSBHSCIDK9BVELyBA!mmE+iBMHOQDeJAJGHFFnBMC;DNK~Denmark~inE8YNERBJNAVKNUAIHSFAMFICGMEFIFBPQGK!6oEkYGKLSXLDJiBF;GBR~United Kingdom~69DgaCLNNbDFFILFFNMAVLLIXSRuBAXYwBBFSTUWCWcQEUkBcEBOLIIKTMdAlBGLDNMVDPKLFiBXUDjBDFJYFLLEPiBC!y7D2ZdDELDLSBaONQ;ISL~Iceland~21D4QFOaQdSzCU9CLWJxBJqBFBFvBFQNiBDkBQiBLcGmBLmBC;AZE~Azerbaijan~ghFoiBGAQOKCSPYcKCGGRCHaHEAMFCNLILFFHAbSAPTJGHLFEFLJEDeIEDLLGB!6gFukBPBLLBHKGKAKQ;GEO~Georgia~u8EkhBCD0BIkBQODUEIKOGFCMMDEdHDEfCVJXAEHFPhBR;PHL~Philippines~g3GizBDIISFSNIDSGSWAcMBMIGBKRJHLFIPNTELFCHIFHFBILLDJAVKICjBGVOAOIIFCG!85Gg6BEcHWHXLMIQFMbNFPILPJFKLBPMDFKRaPIKSFEJQABRSKEU!m3G84BGFCNMADOSVBWPWHGNPGF!o5Gs3BGYRFGWJGAPHBDNOCAHNRWAGK!o0Gs5BdWqBtBMVESPMLQ!62G83BDJOGOAAKZQCV!+1G+2BLPUAIIFUJL;MYS~Malaysia~6zGi9BtBDHaHILgBREVFJCNMNBPENLDPQISDETmBHahBMMEFKAEZchBKAMMAKiBMBKNAEMRI!mnGs7BEDSKCMOBIJGCMOKQEuBIGIcPCvBhBb5BCRDJ;BRN~Brunei~kyGk8BDaJADGLLeT;SVN~Slovenia~6pE+eSCMFUAEDEAEIRGBKHCAGPDDEPBGBFJCJ;FIN~Finland~q0E8OBQiBQTQaaPUUQHQiBQJMlCqBnBCtCMLLVHEVJTKNUNkCdBJfJHHAjBhCZOFYMeBYGWJMPkBHcIJQ;SVK~Slovakia~iwEkdPQfFPKVCBETETJBFGHSBGJIDICKDMIoBFWK;CZE~Czechia~2qE2bKGSCBGMGEFQCCIQAKMNEFKRCDEJDLCPHVMpBXFPSDIFQDGFGEKB;ERI~Eritrea~85E41BBJMvBIFQDMNOaGWsBgBqBqBFEJBhBjBTHNAFFNGNJFQbD;JPN~Japan~8kHkkBTYAWHSEMLQdMnBAfaPHARnBGZKbAYSPmBNKLHGVNFJPWFMNYLQPuBHYGYnBOKiBVMJQbDZINYDOgBBS!6mH4gBQJGahBGTWjBPLaZABVKRaBMvBcYgBM!k+GmoBMNOEKJQECILOJFLEFONFAL;PRY~Paraguay~02CsuCIMBeYGIFQGKmBQDIEAOJuBVSpBAXFWjBBJXHbRRBpBlBKnBKT8BFWMAI;YEM~Yemen~glFwyBY2BPGDS7BUTQRAZOZCNOhBAFLANNfEBAXKHBHGLIGkCAGIKDQXWJiCH;SAU~Saudi Arabia~84EkrBYEQPSBKLVXuBJEDcGiBQgCuB+BEGKQAIUMGEIQIBSMWMKGBOkBkCMEDKQNsBjCYhCIVKPYJEFHjCAHFFMCIJIJPBJLHLRFTPPJBPVBdLZVLNdnB3BLAId;ATA~Antarctica~Ao8DWNoBIgBHiBKiBLiCDkCQ0DO2CEiCFiDE2BI8DLEL5CAnCFTH7BFEJQRDJlBFRHhBFqDBiBGuCNSHHJ9BLjEFPJbFRHHZgBKqCFSKkBB0CTkBBBHHHIHcDOG8BJgCB0CPgBEiBDeE+BBgCEiDAgBByBJeG0BLkBWYFcI4BIgDD+BIMJZPdBLHNZSE8BAyBKKIeC4CLYGeBUPSKaEcBUIeA2BISHIHYIeBoBOsCN6CHiBLGJBJbhBBJCHMHMTHRmBZiBNkBVWAOHkBFcNSBOGHIhBKjBAfKNQCIKIxBOZSDIIKwBUKIKSSQEUOaBMLKNIdEXOhBK5CMRK3ECII8BKOIZIlBBhBGBScIEIeIwBEyDUwDKyCOiBUgCPgERwDCuBGOJgBF0HRiBFZPAHlEEHHERqBJoBD2BNUJyELyDVoBNIJXFWPoCPeTQFiCKAHMJYCGIcCyCFKKwBLkDNiBNSGWBeSaDKJYFeCIISHaDkDEKIQGYDuCAwDRSHYTYEKISGYBiBOWFIJ+CR2BPWCiBNWCSFGHSF+BJqBESGCKiBOcCiBMWCSDUJsBIiCESYAGDKlBOCIaADKVSSGaCaDgBXQFQT2CJiBZqBJaLmBAsBFYCQFMPUSSE6DASGUDmCAmClBgBKsBWsBAwBFiBNaASDQEcOaBqBMcCYBiBNUBsBGqBDqBGsBH6CFITOGEKQSUEsCDqDCQIDIgCS0CMaAOHmBOqCKMIaGQIaEqDCoCMQIBIpBkBdELIdEJKfQPQBUOIEKKIsBCIK1DKTMDMVQeIgBS+CW0BGKMiCEWI+BD8CM--HA!s9Cw3DuBDiBEcKOYAMhFW1BBdHEHwBFUH0BjB!urC2yDqBBITARMLWBMIWcKULSzBIdAMJzBGRFAJYH!8wCi5DkDEcRYKLWvBDzBCbHLH!yL83DOHqBEoBOIMrBCdHdP!o3BkzDOD2CIaBMMnDAVDLJ!6oBs0DEH6BIaDLIVGfBVH!wlBo0DQF6BQpCJ;XNC~N. Cyprus~o3EgnBGFQCUHNKCELCBDPA;CYP~Cyprus~o3EgnBeEXKJDFHKB;MAR~Morocco~u+DgnBKOAOIYGEDKdEJINCAQZKJMRGVClBSBmBVGlBAFSHCJcfYHgBLSzBCCJQRBHIPURQnBOHQXKHWBeVSTFbKTCLQNmBTYlBQAOKWBgBG;EGY~Egypt~m6EswBtIAAlFFRGNDJIJeA4BQaNUBSCGMEHkBIMFOmBPmBFERPPhBBCIYgB8BkByBDEAOea;LBY~Libya~4xEswBAsBZAAK1F1ClBULLjBJJNRJLEHNAJNPKJBjBEdHTKDATiBVCRaIKBSEeKMU0BOYMMFKLDPGLQJQDeGIKoBGEIHKEKFOGSAmF;ETH~Ethiopia~giFq6B-BkCdCTQPAFGPAHFVIFKfDdTPAFFANLDNXJFPTNBILMAEHBTIXKFCJKPOLKVCTcEGPOKOFGGOAUIiBkBPWCMSAGEFIagBqCaUA;DJI~Djibouti~k+Ei3BKCGDGGBKLEKIHMFDRABLQV;XSL~Somaliland~6iF83BAsBZiBTApCZZfOTIEOS6BHUHgBF;UGA~Uganda~k4E2gCnCCVIDBAPKlBaZJDCZKFOGSFQAOJKQOkBHSRYAY;RWA~Rwanda~01E6gCKMBORCHMNBCLEBANIFECOF;BIH~Bosnia and Herz.~mtE2hBTJbVDHLJGJIGOFkBEKGIADKKIDKPIDO;MKD~Macedonia~+vE8hBKICQrBKJDBJGLmBH;SRB~Serbia~stEsfSFOAQQMGCKOGIFEEDEEEFECIMKJIDIECXEGJLDBDLDHKXPILJHEJHAKJNN;MNE~Montenegro~ouE2hBFCADJMAIJJJDGRMFYOFG;XKX~Kosovo~0uEoiBBHJJKFEHaMFKVK;TTO~Trinidad and Tobago~k0Cs4BSDASXAGFAH;SSD~S. Sudan~+1Ew9BTNFJLEJBHEJBPZRJNVPLAHbROFMfQBQSgBACEYAADMDCHIDUOMDKPOLBNFFaFDSEQMKGkBDILAHMOCQUKGOYrBoBPARGNFJG</script>
+<script id="regions" type="text/plain">AFG:South Asia,AGO:Africa,ALB:Eastern Europe,ARE:Middle East,ARG:Latin America,ARM:Middle East,ATA:Antarctic,ATF:Antarctic,AUS:Oceania,AUT:Western Europe,AZE:Middle East,BDI:Africa,BEL:Western Europe,BEN:Africa,BFA:Africa,BGD:South Asia,BGR:Eastern Europe,BHR:Middle East,BHS:Latin America,BIH:Eastern Europe,BLR:Eastern Europe,BLZ:Latin America,BMU:North America,BOL:Latin America,BRA:Latin America,BRN:Southeast Asia,BTN:South Asia,BWA:Africa,CAF:Africa,CAN:North America,CHE:Western Europe,CHL:Latin America,CHN:East Asia,CIV:Africa,CMR:Africa,COD:Africa,COG:Africa,COL:Latin America,CRI:Latin America,CUB:Latin America,CYP:Western Europe,CZE:Eastern Europe,DEU:Western Europe,DJI:Africa,DNK:Western Europe,DOM:Latin America,DZA:Africa,ECU:Latin America,EGY:Africa,ERI:Africa,ESH:Africa,ESP:Western Europe,EST:Eastern Europe,ETH:Africa,FIN:Western Europe,FJI:Oceania,FLK:Latin America,FRA:Western Europe,GAB:Africa,GBR:Western Europe,GEO:Middle East,GHA:Africa,GIN:Africa,GMB:Africa,GNB:Africa,GNQ:Africa,GRC:Western Europe,GRL:North America,GTM:Latin America,GUY:Latin America,HKG:East Asia,HND:Latin America,HRV:Eastern Europe,HTI:Latin America,HUN:Eastern Europe,IDN:Southeast Asia,IND:South Asia,IRL:Western Europe,IRN:Middle East,IRQ:Middle East,ISL:Western Europe,ISR:Middle East,ITA:Western Europe,JAM:Latin America,JOR:Middle East,JPN:East Asia,KAZ:Central Asia,KEN:Africa,KGZ:Central Asia,KHM:Southeast Asia,KOR:East Asia,KWT:Middle East,LAO:Southeast Asia,LBN:Middle East,LBR:Africa,LBY:Africa,LKA:South Asia,LSO:Africa,LTU:Eastern Europe,LUX:Western Europe,LVA:Eastern Europe,MAC:East Asia,MAR:Africa,MDA:Eastern Europe,MDG:Africa,MDV:South Asia,MEX:Latin America,MKD:Eastern Europe,MLI:Africa,MLT:Western Europe,MMR:Southeast Asia,MNE:Eastern Europe,MNG:East Asia,MOZ:Africa,MRT:Africa,MWI:Africa,MYS:Southeast Asia,NAM:Africa,NCL:Oceania,NER:Africa,NGA:Africa,NIC:Latin America,NLD:Western Europe,NOR:Western Europe,NPL:South Asia,NZL:Oceania,OMN:Middle East,PAK:South Asia,PAN:Latin America,PER:Latin America,PHL:Southeast Asia,PNG:Oceania,POL:Eastern Europe,PRI:Latin America,PRK:East Asia,PRT:Western Europe,PRY:Latin America,PSE:Middle East,QAT:Middle East,ROU:Eastern Europe,RUS:Eastern Europe,RWA:Africa,SAU:Middle East,SDN:Africa,SEN:Africa,SGP:Southeast Asia,SLB:Oceania,SLE:Africa,SLV:Latin America,SOM:Africa,SRB:Eastern Europe,SSD:Africa,SUR:Latin America,SVK:Eastern Europe,SVN:Eastern Europe,SWE:Western Europe,SWZ:Africa,SYR:Middle East,TCD:Africa,TGO:Africa,THA:Southeast Asia,TJK:Central Asia,TKM:Central Asia,TLS:Southeast Asia,TTO:Latin America,TUN:Africa,TUR:Middle East,TWN:East Asia,TZA:Africa,UGA:Africa,UKR:Eastern Europe,URY:Latin America,USA:North America,UZB:Central Asia,VEN:Latin America,VNM:Southeast Asia,VUT:Oceania,XKX:Eastern Europe,XNC:Middle East,XSL:Africa,YEM:Middle East,ZAF:Africa,ZMB:Africa,ZWE:Africa</script>
+<script>
+/* ══════════════════════════════════════════════════════════════════════════
+   ▓▓  DEMO DATA  ▓▓
+   Every figure below is INVENTED — a fictional book, made up to show the
+   deck working. None of it is real and none of it is yours. Overwrite the
+   whole block with your own numbers; the shape is what matters.
+
+   Quick tour of the shape:
+     • assetClasses[].weight is percent of the portfolio
+     • constituents[].weight is percent OF THE FUND (from the factsheet)
+     • rest{} spreads the part of a fund you didn't itemise across
+       countries and sectors, so the map and lenses stay honest
+     • only tag an asset class with iso3 if it ISN'T made of the stocks
+       and funds below, or you'll double-count
+     • universes[] is the board you measure coverage against — list each
+       one in the order you'd mind missing it, because "biggest gap" is
+       the first thing absent
+   ═══════════════════════════════════════════════════════════════════════ */
+const DATA = {
+
+  title: "Household book — demo figures",
+  asOf:  "30 June 2026",
+
+  home:     { name: "United Kingdom", iso3: "GBR" },
+  currency: { symbol: "\u00a3", code: "GBP" },
+  local:    { symbol: "\u20a8", code: "PKR", value: 442800000, grouping: "indian" },
+
+  totals: {
+    value:      1284930,
+    gainAbs:    327410,
+    gainOnCost: 34.2,
+    outsideHomeCurrency: 662400
+  },
+
+  assetClasses: [
+    { name: "Listed equity",    value: 812000, weight: 63.2, iso3: "" },
+    { name: "Government bonds", value: 190000, weight: 14.8, iso3: "GBR" },
+    { name: "Cash",             value: 148930, weight: 11.6, iso3: "GBR" },
+    { name: "Property",         value: 134000, weight: 10.4, iso3: "GBR" }
+  ],
+
+  liabilities: [
+    { name: "Mortgage", value: 210000 },
+    { name: "Car loan", value: 14500 }
+  ],
+
+  directStocks: [
+    { name: "Apple",               ticker: "AAPL", value: 68000, iso3: "USA", sector: "Information technology" },
+    { name: "Shell",               ticker: "SHEL", value: 54000, iso3: "GBR", sector: "Energy" },
+    { name: "Taiwan Semiconductor",ticker: "TSM",  value: 42000, iso3: "TWN", sector: "Information technology" },
+    { name: "AstraZeneca",         ticker: "AZN",  value: 38000, iso3: "GBR", sector: "Health care" },
+    { name: "Nestl\u00e9",         ticker: "NESN", value: 33000, iso3: "CHE", sector: "Consumer staples" },
+    { name: "HSBC",                ticker: "HSBA", value: 28000, iso3: "GBR", sector: "Financials" }
+  ],
+
+  etfs: [
+    { name: "World equity index", ticker: "VWRL", value: 292000,
+      constituents: [
+        { name: "Apple",                ticker: "AAPL", weight: 4.6, iso3: "USA", sector: "Information technology" },
+        { name: "Microsoft",            ticker: "MSFT", weight: 4.1, iso3: "USA", sector: "Information technology" },
+        { name: "Nvidia",               ticker: "NVDA", weight: 3.8, iso3: "USA", sector: "Information technology" },
+        { name: "Taiwan Semiconductor", ticker: "TSM",  weight: 1.1, iso3: "TWN", sector: "Information technology" },
+        { name: "Nestl\u00e9",          ticker: "NESN", weight: 0.4, iso3: "CHE", sector: "Consumer staples" }
+      ],
+      rest: {
+        countries: { USA: 46.5, JPN: 6.4, GBR: 4.0, CAN: 3.0, CHN: 3.0, FRA: 2.9, DEU: 2.5,
+                     CHE: 2.2, IND: 1.9, AUS: 1.8, TWN: 1.5, KOR: 1.4, NLD: 1.3, SWE: 0.9,
+                     DNK: 0.8, IRL: 0.8, ESP: 0.7, ITA: 0.7, BRA: 0.6, MYS: 0.4, ISR: 0.3,
+                     NOR: 0.3, FIN: 0.3, BEL: 0.3, ZAF: 0.3, ARE: 0.2 },
+        sectors:   { "Financials": 21.5, "Health care": 11.0, "Consumer discretionary": 10.5,
+                     "Industrials": 10.2, "Information technology": 8.5,
+                     "Communication services": 7.5, "Consumer staples": 5.6, "Energy": 4.1,
+                     "Materials": 3.6, "Utilities": 2.5 } } },
+
+    { name: "US tech growth", ticker: "QQQ", value: 147000,
+      constituents: [
+        { name: "Apple",     ticker: "AAPL", weight: 8.4, iso3: "USA", sector: "Information technology" },
+        { name: "Nvidia",    ticker: "NVDA", weight: 7.9, iso3: "USA", sector: "Information technology" },
+        { name: "Microsoft", ticker: "MSFT", weight: 7.6, iso3: "USA", sector: "Information technology" }
+      ],
+      rest: {
+        countries: { USA: 72.0, NLD: 2.1, CHN: 1.9 },
+        sectors:   { "Information technology": 36.0, "Communication services": 16.0,
+                     "Consumer discretionary": 14.5, "Health care": 5.4, "Industrials": 4.1 } } },
+
+    { name: "Emerging markets", ticker: "VFEM", value: 110000,
+      constituents: [
+        { name: "Taiwan Semiconductor", ticker: "TSM",  weight: 8.2, iso3: "TWN", sector: "Information technology" },
+        { name: "Tencent",              ticker: "0700", weight: 4.1, iso3: "CHN", sector: "Communication services" },
+        { name: "Samsung Electronics",  ticker: "005930", weight: 3.6, iso3: "KOR", sector: "Information technology" },
+        { name: "Alibaba",              ticker: "BABA", weight: 2.6, iso3: "CHN", sector: "Consumer discretionary" },
+        { name: "Reliance Industries",  ticker: "RELI", weight: 1.6, iso3: "IND", sector: "Energy" }
+      ],
+      rest: {
+        countries: { CHN: 21.8, IND: 16.9, TWN: 10.0, KOR: 8.5, BRA: 4.6, SAU: 3.9, ZAF: 3.1,
+                     MEX: 2.4, IDN: 1.7, THA: 1.6, ARE: 1.4, MYS: 1.3, TUR: 0.9, PHL: 0.6,
+                     CHL: 0.6, QAT: 0.6 },
+        sectors:   { "Financials": 24.0, "Information technology": 18.0,
+                     "Consumer discretionary": 12.0, "Communication services": 6.5,
+                     "Materials": 6.0, "Energy": 5.0, "Industrials": 4.0,
+                     "Consumer staples": 3.0, "Utilities": 1.0, "Health care": 0.4 } } }
+  ],
+
+  universes: {
+    "Asset class": ["Listed equity","Government bonds","Cash","Property",
+                    "Corporate credit","Commodities","Private equity","Crypto"],
+    "Geography": ["North America","Western Europe","East Asia","South Asia","Southeast Asia",
+                  "Middle East","Latin America","Eastern Europe","Africa","Oceania","Central Asia"],
+    "Sector": ["Information technology","Financials","Health care","Consumer discretionary",
+               "Communication services","Industrials","Consumer staples","Energy",
+               "Utilities","Materials","Real estate"]
+  },
+
+  traceThreshold: 1.0
+};
+</script>
+<script>
+/* ══════════════════════════════════════════════════════════════════════════
+   ENGINE — nothing below here needs editing.
+   ═══════════════════════════════════════════════════════════════════════ */
+"use strict";
+
+const REDUCED = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+const $ = (s, r) => (r || document).querySelector(s);
+const el = (tag, cls, html) => { const n = document.createElement(tag);
+  if (cls) n.className = cls; if (html != null) n.innerHTML = html; return n; };
+const clamp = (v, a, b) => v < a ? a : v > b ? b : v;
+const sum = (a, f) => a.reduce((s, x) => s + (f ? f(x) : x), 0);
+
+/* ---------- placeholder-tolerant number parsing ---------- */
+let UNFILLED = 0;
+const isTodo = v => typeof v === "string" && /\[.*\]/.test(v);
+function num(v){
+  if (typeof v === "number") return isFinite(v) ? v : NaN;
+  if (typeof v !== "string" || isTodo(v)) return NaN;
+  const s = v.replace(/[^0-9.+-]/g, "");
+  const n = parseFloat(s);
+  return isFinite(n) ? n : NaN;
+}
+const n0 = v => { const x = num(v); return isFinite(x) ? x : 0; };
+function txt(v){ return isTodo(v) || v == null || v === "" ? null : String(v); }
+/* Names fall back to the raw "[PLACEHOLDER]" so an unfilled row names its own line. */
+function label(v, fb){ const t = txt(v); return t || (typeof v === "string" && v ? v : fb); }
+function scanTodos(o){
+  if (typeof o === "string"){ if (isTodo(o)) UNFILLED++; return; }
+  if (Array.isArray(o)){ o.forEach(scanTodos); return; }
+  if (o && typeof o === "object"){ Object.values(o).forEach(scanTodos); }
+}
+
+/* ---------- formatting ---------- */
+const DASH = "—";
+function groupWestern(s){ return s.replace(/\B(?=(\d{3})+(?!\d))/g, ","); }
+function groupIndian(s){                       /* 12,84,930 — lakh / crore */
+  if (s.length <= 3) return s;
+  const head = s.slice(0, -3), tail = s.slice(-3);
+  return head.replace(/\B(?=(\d{2})+(?!\d))/g, ",") + "," + tail;
+}
+function money(v, sym, grouping){
+  if (!isFinite(v)) return DASH;
+  const neg = v < 0, a = Math.abs(v);
+  const body = a >= 1000 ? Math.round(a).toString() : a.toFixed(2);
+  const parts = body.split(".");
+  parts[0] = (grouping === "indian" ? groupIndian : groupWestern)(parts[0]);
+  return (neg ? "−" : "") + (sym || "") + parts.join(".");
+}
+const pct = (v, d) => isFinite(v) ? v.toFixed(d == null ? 1 : d) + "%" : DASH;
+const signed = s => s;
+
+/* ---------- easing + wall-clock timeline ---------- */
+const easeOutQuint = p => 1 - Math.pow(1 - p, 5);
+const easeOutCubic = p => 1 - Math.pow(1 - p, 3);
+/* seg(): progress of a sub-animation starting at `start` ms, lasting `dur` ms */
+const seg = (t, start, dur) => clamp((t - start) / dur, 0, 1);
+
+const Clock = {
+  t0: 0, timer: null, cb: null,
+  run(cb){ this.cb = cb; this.t0 = Date.now();
+    if (!this.timer) this.timer = setInterval(() => this.tick(), 25);  /* wall clock, not rAF */
+    this.tick(); },
+  attach(cb){ this.cb = cb;
+    if (!this.timer) this.timer = setInterval(() => this.tick(), 25);
+    this.tick(); },
+  restart(){ this.t0 = Date.now(); this.tick(); },
+  tick(){ if (this.cb) this.cb(Date.now() - this.t0); },
+  stop(){ clearInterval(this.timer); this.timer = null; this.cb = null; }
+};
+
+/* ---------- colour: derive a slice ramp from --accent ---------- */
+function hexToHsl(hex){
+  const m = /^#?([a-f\d]{2})([a-f\d]{2})([a-f\d]{2})$/i.exec((hex || "").trim());
+  if (!m) return [38, .78, .57];
+  let r = parseInt(m[1],16)/255, g = parseInt(m[2],16)/255, b = parseInt(m[3],16)/255;
+  const mx = Math.max(r,g,b), mn = Math.min(r,g,b), l = (mx+mn)/2;
+  let h = 0, s = 0;
+  if (mx !== mn){
+    const d = mx - mn;
+    s = l > .5 ? d/(2-mx-mn) : d/(mx+mn);
+    h = mx === r ? (g-b)/d + (g < b ? 6 : 0) : mx === g ? (b-r)/d + 2 : (r-g)/d + 4;
+    h *= 60;
+  }
+  return [h, s, l];
+}
+let RAMP_BASE = [38, .78, .57];
+function refreshRamp(){
+  const app = $(".app") || $(".mapview");
+  if (!app) return;
+  const raw = getComputedStyle(app).getPropertyValue("--accent");
+  RAMP_BASE = hexToHsl(raw);
+}
+/* A warm arc away from the accent hue — one family, never a rainbow. */
+function ramp(i, n){
+  const [h, s, l] = RAMP_BASE;
+  if (n <= 1) return `hsl(${h} ${Math.round(s*100)}% ${Math.round(l*100)}%)`;
+  const f = i / (n - 1);
+  const hh = (h - 44 * f + 360) % 360;
+  const ss = clamp(s * (1 - .22 * f), 0, 1);
+  const ll = clamp(l * (1 + .09 * f), 0, .82);
+  return `hsl(${hh.toFixed(1)} ${(ss*100).toFixed(0)}% ${(ll*100).toFixed(0)}%)`;
+}
+
+/* ══════════════════════════════════════════════════════════════════════════
+   WORLD GEOMETRY — decoded from the packed blob at the foot of the file.
+   ═══════════════════════════════════════════════════════════════════════ */
+const B64 = "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789+-";
+const B64I = {}; for (let i = 0; i < B64.length; i++) B64I[B64[i]] = i;
+function unpack(s){
+  const out = []; let i = 0;
+  while (i < s.length){
+    let n = 0, sh = 0, v;
+    do { v = B64I[s[i++]]; n |= (v & 31) << sh; sh += 5; } while (v & 32);
+    out.push((n >> 1) ^ -(n & 1));
+  }
+  return out;
+}
+const GEO = { list: [], byA3: {} };
+function loadGeo(){
+  const blob = document.getElementById("geo").textContent.trim();
+  for (const rec of blob.split(";")){
+    const p = rec.split("~");
+    if (p.length < 3) continue;
+    const c = { a3: p[0], name: p[1], rings: [] };
+    for (const part of p[2].split("!")){
+      const d = unpack(part), r = new Float32Array(d.length);
+      let x = 0, y = 0;
+      for (let j = 0; j < d.length; j += 2){
+        if (j === 0){ x = d[0]; y = d[1]; } else { x += d[j]; y += d[j+1]; }
+        r[j]     = x / 4096 * 360 - 180;      /* lon */
+        r[j + 1] = 90 - y / 2048 * 180;       /* lat */
+      }
+      if (r.length >= 8) c.rings.push(r);
+    }
+    if (c.rings.length){ GEO.list.push(c); GEO.byA3[c.a3] = c; }
+  }
+}
+const REGION_OF = {};
+function loadRegions(){
+  for (const pair of document.getElementById("regions").textContent.trim().split(",")){
+    const [a3, r] = pair.split(":");
+    if (a3) REGION_OF[a3] = r;
+  }
+}
+const nameOfISO = a3 => (GEO.byA3[a3] && GEO.byA3[a3].name) || a3;
+
+/* ---------- orthographic globe (hidden points pushed to the limb, then clipped) ---------- */
+const D2R = Math.PI / 180;
+function drawGlobe(ctx, W, H, rotLon, rotLat, paint){
+  const R = Math.min(W, H) / 2 - 2, cx = W / 2, cy = H / 2;
+  const sp0 = Math.sin(rotLat * D2R), cp0 = Math.cos(rotLat * D2R);
+  ctx.clearRect(0, 0, W, H);
+  ctx.save();
+  ctx.beginPath(); ctx.arc(cx, cy, R, 0, Math.PI * 2); ctx.clip();
+  ctx.fillStyle = paint.ocean; ctx.fill();
+
+  /* graticule */
+  ctx.strokeStyle = paint.grat; ctx.lineWidth = .6;
+  for (let lat = -60; lat <= 60; lat += 30){
+    ctx.beginPath(); let started = false;
+    for (let lon = -180; lon <= 180; lon += 3){
+      const l = (lon - rotLon) * D2R, p = lat * D2R;
+      const cosc = sp0 * Math.sin(p) + cp0 * Math.cos(p) * Math.cos(l);
+      if (cosc < 0){ started = false; continue; }
+      const x = cx + R * Math.cos(p) * Math.sin(l);
+      const y = cy - R * (cp0 * Math.sin(p) - sp0 * Math.cos(p) * Math.cos(l));
+      started ? ctx.lineTo(x, y) : (ctx.moveTo(x, y), started = true);
+    }
+    ctx.stroke();
+  }
+  for (let lon = -180; lon < 180; lon += 30){
+    ctx.beginPath(); let started = false;
+    for (let lat = -90; lat <= 90; lat += 3){
+      const l = (lon - rotLon) * D2R, p = lat * D2R;
+      const cosc = sp0 * Math.sin(p) + cp0 * Math.cos(p) * Math.cos(l);
+      if (cosc < 0){ started = false; continue; }
+      const x = cx + R * Math.cos(p) * Math.sin(l);
+      const y = cy - R * (cp0 * Math.sin(p) - sp0 * Math.cos(p) * Math.cos(l));
+      started ? ctx.lineTo(x, y) : (ctx.moveTo(x, y), started = true);
+    }
+    ctx.stroke();
+  }
+
+  ctx.lineWidth = .55;
+  for (const c of GEO.list){
+    if (c.a3 === "ATA" || c.a3 === "ATF") continue;
+    const style = paint.country(c.a3);
+    for (const r of c.rings){
+      let vis = false;
+      ctx.beginPath();
+      for (let j = 0; j < r.length; j += 2){
+        const l = (r[j] - rotLon) * D2R, p = r[j+1] * D2R;
+        const sp = Math.sin(p), cpp = Math.cos(p), cl = Math.cos(l);
+        const cosc = sp0 * sp + cp0 * cpp * cl;
+        let x = cpp * Math.sin(l), y = cp0 * sp - sp0 * cpp * cl;
+        if (cosc >= 0){ vis = true; x *= R; y *= R; }
+        else { const m = Math.hypot(x, y) || 1e-9; x = x / m * R * 1.42; y = y / m * R * 1.42; }
+        j === 0 ? ctx.moveTo(cx + x, cy - y) : ctx.lineTo(cx + x, cy - y);
+      }
+      if (!vis) continue;
+      ctx.closePath();
+      ctx.fillStyle = style.fill; ctx.fill();
+      if (style.stroke){ ctx.strokeStyle = style.stroke; ctx.stroke(); }
+    }
+  }
+  ctx.restore();
+  /* terminator shading + rim */
+  const g = ctx.createRadialGradient(cx - R*.32, cy - R*.34, R*.12, cx, cy, R*1.02);
+  g.addColorStop(0, "rgba(255,255,255,.05)");
+  g.addColorStop(.62, "rgba(0,0,0,0)");
+  g.addColorStop(1, paint.shade);
+  ctx.beginPath(); ctx.arc(cx, cy, R, 0, Math.PI*2); ctx.fillStyle = g; ctx.fill();
+  ctx.strokeStyle = paint.rim; ctx.lineWidth = 1; ctx.stroke();
+}
+
+/* ---------- Natural Earth I — flat map ---------- */
+function neRaw(lon, lat){
+  const l = lon * D2R, p = lat * D2R, p2 = p*p, p4 = p2*p2;
+  return [ l * (0.8707 - 0.131979*p2 + p4 * (-0.013791 + p4 * (0.003971*p2 - 0.001529*p4))),
+           p * (1.007226 + p2 * (0.015085 + p4 * (-0.044475 + 0.028874*p2 - 0.005916*p4))) ];
+}
+/* frame the map on the inhabited world: Antarctica is dropped, so the
+   remaining land fills the pane instead of floating in it. */
+const MAP_LAT = [-58, 84];
+function mapFit(W, H){
+  const x1 = neRaw(180, 0)[0], y1 = neRaw(0, MAP_LAT[1])[1], y0 = neRaw(0, MAP_LAT[0])[1];
+  const s = Math.min(W / (2 * x1), H / (y1 - y0)) * .98;
+  return { s, cx: W / 2, cy: H / 2 + (y1 + y0) / 2 * s };
+}
+function projMap(lon, lat, f){
+  const [x, y] = neRaw(lon, lat);
+  return [ f.cx + x * f.s, f.cy - y * f.s ];
+}
+function drawFlatMap(ctx, W, H, paint){
+  const f = mapFit(W, H);
+  ctx.clearRect(0, 0, W, H);
+  ctx.lineWidth = .6;
+  for (const c of GEO.list){
+    if (c.a3 === "ATA" || c.a3 === "ATF") continue;
+    const style = paint.country(c.a3);
+    for (const r of c.rings){
+      ctx.beginPath();
+      for (let j = 0; j < r.length; j += 2){
+        const [x, y] = projMap(r[j], r[j+1], f);
+        j === 0 ? ctx.moveTo(x, y) : ctx.lineTo(x, y);
+      }
+      ctx.closePath();
+      ctx.fillStyle = style.fill; ctx.fill();
+      ctx.strokeStyle = style.stroke; ctx.stroke();
+    }
+  }
+  return f;
+}
+function centroidOf(a3){
+  const c = GEO.byA3[a3];
+  if (!c) return null;
+  let best = null, bestA = -1;
+  for (const r of c.rings){
+    let a = 0, cxx = 0, cyy = 0;
+    for (let j = 0; j < r.length - 2; j += 2){
+      const x1 = r[j], y1 = r[j+1], x2 = r[j+2], y2 = r[j+3];
+      const cr = x1 * y2 - x2 * y1;
+      a += cr; cxx += (x1 + x2) * cr; cyy += (y1 + y2) * cr;
+    }
+    a /= 2;
+    if (Math.abs(a) > bestA){ bestA = Math.abs(a);
+      best = a ? [cxx / (6 * a), cyy / (6 * a)] : [r[0], r[1]]; }
+  }
+  return best;
+}
+
+/* ══════════════════════════════════════════════════════════════════════════
+   DERIVATION — one pass over DATA, everything the scenes need.
+   ═══════════════════════════════════════════════════════════════════════ */
+const M = {};
+function derive(){
+  const SYM = txt(DATA.currency && DATA.currency.symbol) || "";
+  M.sym = SYM;
+  M.total = num(DATA.totals.value);
+  M.gainAbs = num(DATA.totals.gainAbs);
+  M.gainOnCost = num(DATA.totals.gainOnCost);
+  const T = isFinite(M.total) && M.total > 0 ? M.total : 0;
+  M.T = T;
+
+  M.classes = (DATA.assetClasses || []).map((c, i) => ({
+    name: label(c.name, "Class " + (i + 1)),
+    value: num(c.value),
+    weight: isFinite(num(c.weight)) ? num(c.weight) : (T ? num(c.value) / T * 100 : NaN),
+    iso3: (txt(c.iso3) || "").toUpperCase(),
+    colour: null, i
+  }));
+  M.classes.forEach((c, i) => c.colour = ramp(i, Math.max(M.classes.length, 1)));
+  M.classWeightSum = sum(M.classes, c => isFinite(c.weight) ? c.weight : 0);
+
+  M.liabilities = (DATA.liabilities || []).map((l, i) => ({
+    name: label(l.name, "Liability " + (i + 1)), value: num(l.value)
+  }));
+  M.liabTotal = sum(M.liabilities, l => isFinite(l.value) ? l.value : 0);
+
+  /* ---- equity look-through ---- */
+  const direct = (DATA.directStocks || []).map(s => ({
+    name: label(s.name, txt(s.ticker) || "Holding"),
+    ticker: (txt(s.ticker) || "").toUpperCase(),
+    value: n0(s.value), iso3: (txt(s.iso3) || "").toUpperCase(),
+    sector: txt(s.sector) || ""
+  }));
+  const etfs = (DATA.etfs || []).map(e => ({
+    name: label(e.name, txt(e.ticker) || "Fund"),
+    ticker: (txt(e.ticker) || "").toUpperCase(),
+    value: n0(e.value),
+    constituents: (e.constituents || []).map(c => ({
+      name: label(c.name, txt(c.ticker) || "Holding"),
+      ticker: (txt(c.ticker) || "").toUpperCase(),
+      weight: n0(c.weight), iso3: (txt(c.iso3) || "").toUpperCase(),
+      sector: txt(c.sector) || ""
+    })),
+    rest: e.rest || {}
+  }));
+  M.direct = direct; M.etfs = etfs;
+  M.directTotal = sum(direct, s => s.value);
+  M.etfTotal = sum(etfs, e => e.value);
+  M.equityBase = M.directTotal + M.etfTotal;
+
+  const key = h => h.ticker || h.name.toLowerCase().replace(/[^a-z0-9]/g, "");
+  const merged = new Map();
+  const put = (h, value, viaEtf) => {
+    const k = key(h); if (!k) return;
+    let m = merged.get(k);
+    if (!m){ m = { key: k, name: h.name, ticker: h.ticker, directValue: 0, etfValue: 0,
+                   iso3: h.iso3, sector: h.sector, via: [] }; merged.set(k, m); }
+    if (viaEtf){ m.etfValue += value; if (m.via.indexOf(viaEtf) < 0) m.via.push(viaEtf); }
+    else m.directValue += value;
+    if (!m.iso3 && h.iso3) m.iso3 = h.iso3;
+    if (!m.sector && h.sector) m.sector = h.sector;
+  };
+  direct.forEach(s => put(s, s.value, null));
+  etfs.forEach(e => e.constituents.forEach(c => put(c, e.value * c.weight / 100, e.ticker || e.name)));
+
+  M.merged = [...merged.values()].map(m => {
+    m.total = m.directValue + m.etfValue;
+    m.dup = m.directValue > 0 && m.etfValue > 0;
+    m.weight = M.equityBase ? m.total / M.equityBase * 100 : NaN;
+    return m;
+  }).sort((a, b) => b.total - a.total);
+
+  M.dups = M.merged.filter(m => m.dup);
+  M.dupValue = sum(M.dups, m => m.total);
+  M.dupPctEquity = M.equityBase ? M.dupValue / M.equityBase * 100 : NaN;
+  M.lookedThrough = sum(M.merged, m => m.total);
+
+  /* ---- country exposure (of total portfolio) ---- */
+  const country = {};
+  const add = (iso3, v) => { if (!iso3 || !isFinite(v) || v <= 0) return;
+    country[iso3] = (country[iso3] || 0) + v; };
+  direct.forEach(s => add(s.iso3, s.value));
+  etfs.forEach(e => {
+    e.constituents.forEach(c => add(c.iso3, e.value * c.weight / 100));
+    const rc = (e.rest && e.rest.countries) || {};
+    Object.keys(rc).forEach(k => add(k.toUpperCase(), e.value * n0(rc[k]) / 100));
+  });
+  M.classes.forEach(c => { if (c.iso3) add(c.iso3, isFinite(c.value) ? c.value : 0); });
+
+  M.countryValue = country;
+  M.countries = Object.keys(country).map(a3 => ({
+    a3, name: nameOfISO(a3), value: country[a3],
+    pct: T ? country[a3] / T * 100 : NaN
+  })).sort((a, b) => b.value - a.value);
+  M.attributed = sum(M.countries, c => c.value);
+  M.unattributed = Math.max(0, T - M.attributed);
+  M.topCountry = M.countries[0] || null;
+
+  M.home = { name: label(DATA.home.name, DASH),
+             iso3: (txt(DATA.home.iso3) || "").toUpperCase() };
+  M.homeCentroid = M.home.iso3 ? centroidOf(M.home.iso3) : null;
+  M.homeValue = M.home.iso3 ? (country[M.home.iso3] || 0) : 0;
+  M.homePct = T ? M.homeValue / T * 100 : NaN;
+
+  const declaredOutside = num(DATA.totals.outsideHomeCurrency);
+  M.outsideValue = isFinite(declaredOutside) ? declaredOutside
+                 : (T && M.attributed ? T - M.homeValue : NaN);
+  M.outsideIsEstimate = !isFinite(declaredOutside);
+  M.outsidePct = T && isFinite(M.outsideValue) ? M.outsideValue / T * 100 : NaN;
+
+  /* ---- region + sector exposure ---- */
+  const region = {};
+  M.countries.forEach(c => { const r = REGION_OF[c.a3];
+    if (r) region[r] = (region[r] || 0) + c.value; });
+  M.regionValue = region;
+
+  const sector = {};
+  const addS = (s, v) => { if (!s || !isFinite(v) || v <= 0) return;
+    const k = s.trim().toLowerCase(); sector[k] = (sector[k] || 0) + v; };
+  direct.forEach(s => addS(s.sector, s.value));
+  etfs.forEach(e => {
+    e.constituents.forEach(c => addS(c.sector, e.value * c.weight / 100));
+    const rs = (e.rest && e.rest.sectors) || {};
+    Object.keys(rs).forEach(k => addS(k, e.value * n0(rs[k]) / 100));
+  });
+  M.sectorValue = sector;
+
+  /* ---- coverage lenses ---- */
+  const U = DATA.universes || {};
+  const classByName = {};
+  M.classes.forEach(c => classByName[c.name.trim().toLowerCase()] = c);
+  const lens = (title, noun, items, weightOf) => {
+    const cells = items.map(rawName => {
+      const name = txt(rawName) || String(rawName);
+      const w = weightOf(name);
+      return { name, weight: isFinite(w) ? w : 0, held: isFinite(w) && w > 0.0001 };
+    });
+    const held = cells.filter(c => c.held), missing = cells.filter(c => !c.held);
+    const max = Math.max(1e-9, ...held.map(c => c.weight));
+    return { title, noun, cells, held: held.length, missing: missing.length, max,
+             gap: missing.length ? missing[0].name : null };
+  };
+  M.lenses = [
+    lens("Asset class", "asset classes", U["Asset class"] || [],
+         n => { const c = classByName[n.trim().toLowerCase()]; return c ? c.weight : 0; }),
+    lens("Geography", "regions", U["Geography"] || [],
+         n => T ? (region[n] || 0) / T * 100 : 0),
+    lens("Sector", "sectors", U["Sector"] || [],
+         n => T ? (sector[n.trim().toLowerCase()] || 0) / T * 100 : 0)
+  ];
+}
+</script>
+<script>
+/* ══════════════════════════════════════════════════════════════════════════
+   SCENES
+   ═══════════════════════════════════════════════════════════════════════ */
+const V = { money: true };                       /* $ / % toggle */
+const showMoney = () => V.money;
+const mny = v => money(v, M.sym);
+const mnyLocal = v => money(v, txt(DATA.local && DATA.local.symbol) || "",
+                            (DATA.local && DATA.local.grouping) || "western");
+
+function reveal(node, p){
+  if (!node) return;
+  node.style.opacity = p;
+  node.style.transform = "translateY(" + ((1 - p) * 9).toFixed(2) + "px)";
+}
+function head(idx, title){
+  const h = el("div", "scene-head");
+  h.appendChild(el("span", "idx", idx));
+  h.appendChild(el("span", "ttl", title));
+  h.appendChild(el("span", "rule"));
+  return h;
+}
+function statBlock(k, sub){
+  const s = el("div", "stat reveal");
+  s.appendChild(el("span", "k cap", k));
+  s.appendChild(el("div", "v", DASH));
+  if (sub) s.appendChild(el("div", "s", sub));
+  return s;
+}
+const setStat = (s, v) => { s.querySelector(".v").innerHTML = v; };
+const hiddenVal = '<span class="hidden-val">hidden in % view</span>';
+const awaiting = t => '<span style="font-family:var(--f-ui);font-size:32px;font-weight:500;' +
+  'letter-spacing:.01em;color:var(--text-3)">' + t + '</span>';
+const plural = (n, s, p) => n === 1 ? s : (p || s + "s");
+
+/* ───────────────────────── SCENE 0 — Overview ───────────────────────── */
+const scene0 = {
+  num: "00", name: "Overview", dur: 6000,
+  mount(root){
+    const s = el("div", "scene s0");
+    s.appendChild(head("00", "Overview"));
+
+    const led = el("div", "ledger reveal");
+    if (M.liabilities.length && M.liabTotal > 0){
+      led.appendChild(el("span", "cap", "Gross · less liabilities · net"));
+      led.appendChild(el("div", "lv",
+        mny(M.total) + "  −" + mny(M.liabTotal) + "  =  " + mny(M.total - M.liabTotal)));
+    } else {
+      led.appendChild(el("span", "cap", "As at"));
+      led.appendChild(el("div", "lv", txt(DATA.asOf) || DASH));
+    }
+    if (!showMoney()) led.style.display = "none";
+    s.appendChild(led);
+
+    s.appendChild(el("div", "eyebrow cap", showMoney() ? "Total portfolio value" : "Total book"));
+    const hl = el("h1", "fig headline num", DASH);
+    s.appendChild(hl);
+    s.appendChild(el("div", "sub reveal",
+      showMoney()
+        ? (txt(DATA.currency && DATA.currency.code) || "") + " · valued " + (txt(DATA.asOf) || DASH)
+        : "Values hidden. Percentages only."));
+
+    const stats = el("div", "stats");
+    const a = statBlock(showMoney() ? "Total gain" : "Total gain, share of book");
+    const b = statBlock("Gain on cost");
+    const c = statBlock(showMoney()
+      ? "In " + (txt(DATA.local && DATA.local.code) || "local currency")
+      : "Outside home currency",
+      showMoney() ? null : (M.outsideIsEstimate ? "estimated from country exposure" : null));
+    [a, b, c].forEach(x => stats.appendChild(x));
+    s.appendChild(stats);
+
+    const nC = M.classes.length, nD = M.direct.length, nE = M.etfs.length;
+    const say = el("p", "say note reveal",
+      "This book holds " + nC + " asset " + plural(nC, "class", "classes") + ", " +
+      nD + " direct " + plural(nD, "position") + " and " + nE + " " + plural(nE, "fund") +
+      ". The four scenes that follow read all of it through to the companies, countries and sectors underneath.");
+    s.appendChild(say);
+
+    root.appendChild(s);
+    this.r = { hl, led, sub: s.querySelector(".sub"), a, b, c, say };
+  },
+  frame(t){
+    const r = this.r;
+    const p = easeOutQuint(seg(t, 400, 2400));
+    if (isFinite(M.total)){
+      r.hl.innerHTML = showMoney()
+        ? (M.sym ? mny(M.total * p).replace(M.sym, '<span class="sym">' + M.sym + "</span>")
+                 : mny(M.total * p))
+        : (100 * p).toFixed(1) + '<span class="sym">%</span>';
+    } else r.hl.innerHTML = awaiting("Awaiting total value");
+
+    reveal(r.led, easeOutCubic(seg(t, 200, 900)));
+    reveal(r.sub, easeOutCubic(seg(t, 1500, 800)));
+
+    const pa = easeOutQuint(seg(t, 2100, 1500));
+    reveal(r.a, easeOutCubic(seg(t, 2100, 700)));
+    setStat(r.a, showMoney()
+      ? (isFinite(M.gainAbs) ? (M.gainAbs >= 0 ? "+" : "") + mny(M.gainAbs * pa) : DASH)
+      : (isFinite(M.gainAbs) && M.T ? (M.gainAbs >= 0 ? "+" : "") + pct(M.gainAbs / M.T * 100 * pa) : DASH));
+
+    const pb = easeOutQuint(seg(t, 2400, 1500));
+    reveal(r.b, easeOutCubic(seg(t, 2400, 700)));
+    setStat(r.b, isFinite(M.gainOnCost)
+      ? (M.gainOnCost >= 0 ? "+" : "") + pct(M.gainOnCost * pb) : DASH);
+
+    const pc = easeOutQuint(seg(t, 2700, 1500));
+    reveal(r.c, easeOutCubic(seg(t, 2700, 700)));
+    if (showMoney()){
+      const lv = num(DATA.local && DATA.local.value);
+      setStat(r.c, isFinite(lv) ? mnyLocal(lv * pc) : DASH);
+    } else {
+      setStat(r.c, isFinite(M.outsidePct) ? pct(M.outsidePct * pc) : DASH);
+    }
+    reveal(r.say, easeOutCubic(seg(t, 3700, 1100)));
+  }
+};
+
+/* ──────────────────────── SCENE 1 — Allocation ──────────────────────── */
+const SL_START = 700, SL_STEP = 560, SL_DUR = 700;
+function annulus(cx, cy, r0, r1, a0, a1){
+  if (a1 - a0 < 0.0004) return "";
+  const large = (a1 - a0) > Math.PI ? 1 : 0;
+  const P = (r, a) => [cx + r * Math.cos(a), cy + r * Math.sin(a)];
+  const [x0,y0] = P(r1,a0), [x1,y1] = P(r1,a1), [x2,y2] = P(r0,a1), [x3,y3] = P(r0,a0);
+  return `M${x0} ${y0}A${r1} ${r1} 0 ${large} 1 ${x1} ${y1}L${x2} ${y2}A${r0} ${r0} 0 ${large} 0 ${x3} ${y3}Z`;
+}
+const scene1 = {
+  num: "01", name: "Allocation",
+  get dur(){ return SL_START + M.classes.length * SL_STEP + 1800; },
+  mount(root){
+    const s = el("div", "scene s1");
+    s.appendChild(head("01", "Allocation"));
+    const body = el("div", "body");
+
+    const ring = el("div", "ring");
+    const NS = "http://www.w3.org/2000/svg";
+    const svg = document.createElementNS(NS, "svg");
+    svg.setAttribute("viewBox", "0 0 520 520");
+    const guide = document.createElementNS(NS, "circle");
+    guide.setAttribute("cx", 260); guide.setAttribute("cy", 260); guide.setAttribute("r", 175);
+    guide.setAttribute("fill", "none");
+    guide.setAttribute("stroke", "var(--line-2)");
+    guide.setAttribute("stroke-width", 70);
+    guide.setAttribute("opacity", ".34");
+    if (!M.classWeightSum) guide.setAttribute("stroke-dasharray", "3 9");
+    svg.appendChild(guide);
+    const paths = M.classes.map(c => {
+      const p = document.createElementNS(NS, "path");
+      p.setAttribute("fill", c.colour);
+      svg.appendChild(p); return p;
+    });
+    ring.appendChild(svg);
+    const centre = el("div", "centre");
+    const cv = el("div", "cv num", DASH);
+    centre.appendChild(cv);
+    centre.appendChild(el("div", "ck cap", M.classWeightSum ? "Allocated" : "Awaiting data"));
+    ring.appendChild(centre);
+    body.appendChild(ring);
+
+    const legend = el("div", "legend");
+    const rows = M.classes.map(c => {
+      const r = el("div", "legend-row reveal");
+      const sw = el("i", "sw"); sw.style.background = c.colour;
+      r.appendChild(sw);
+      r.appendChild(el("span", "lb", c.name));
+      r.appendChild(el("span", "vl", showMoney() ? (isFinite(c.value) ? mny(c.value) : DASH) : ""));
+      r.appendChild(el("span", "wt num", DASH));
+      legend.appendChild(r); return r;
+    });
+    let liabWrap = null, liabRows = [];
+    if (M.liabilities.length){
+      liabWrap = el("div", "legend-liab reveal");
+      liabWrap.appendChild(el("span", "cap", "Outside the circle · liabilities"));
+      liabRows = M.liabilities.map(l => {
+        const r = el("div", "legend-row");
+        r.appendChild(el("i", "sw"));
+        r.appendChild(el("span", "lb", l.name));
+        r.appendChild(el("span", "vl", showMoney() ? (isFinite(l.value) ? "−" + mny(l.value) : DASH) : ""));
+        const w = el("span", "wt num",
+          M.T && isFinite(l.value) ? "−" + pct(l.value / M.T * 100) : DASH);
+        r.appendChild(w);
+        liabWrap.appendChild(r); return r;
+      });
+      liabWrap.appendChild(el("div", "legend-note",
+        "Not a slice. Liabilities sit against the book, not inside it."));
+      legend.appendChild(liabWrap);
+    }
+    body.appendChild(legend);
+    s.appendChild(body);
+    root.appendChild(s);
+    this.r = { paths, cv, rows, liabWrap };
+  },
+  frame(t){
+    const r = this.r, n = M.classes.length;
+    let a = -Math.PI / 2;
+    const GAP = 0.014;
+    let shown = 0;
+    M.classes.forEach((c, i) => {
+      const w = isFinite(c.weight) ? c.weight : 0;
+      const full = (w / 100) * Math.PI * 2;
+      const p = easeOutQuint(seg(t, SL_START + i * SL_STEP, SL_DUR));
+      const sweep = Math.max(0, full * p - (full > GAP ? GAP : 0));
+      r.paths[i].setAttribute("d", annulus(260, 260, 140, 210, a, a + sweep));
+      a += full;
+      shown += w * p;
+      const rp = easeOutCubic(seg(t, SL_START + i * SL_STEP, 620));
+      reveal(r.rows[i], rp);
+      r.rows[i].querySelector(".wt").textContent = isFinite(c.weight) ? pct(c.weight * p) : DASH;
+    });
+    r.cv.textContent = M.classWeightSum ? pct(shown) : DASH;
+    if (r.liabWrap) reveal(r.liabWrap, easeOutCubic(seg(t, SL_START + n * SL_STEP + 260, 900)));
+  }
+};
+
+/* ───────────────────── SCENE 2 — Coverage & gaps ─────────────────────── */
+const scene2 = {
+  num: "02", name: "Coverage & gaps", lens: 0,
+  get dur(){ const L = M.lenses[this.lens]; return 400 + (L ? L.cells.length : 0) * 95 + 2000; },
+  mount(root){
+    const s = el("div", "scene s2");
+    s.appendChild(head("02", "Coverage & gaps"));
+
+    const tabs = el("div", "lenses");
+    M.lenses.forEach((L, i) => {
+      const b = el("button", "tab", L.title);
+      b.setAttribute("role", "tab");
+      b.setAttribute("aria-selected", i === this.lens ? "true" : "false");
+      b.onclick = () => { if (this.lens === i) return; this.lens = i; Deck.remount(false); };
+      tabs.appendChild(b);
+    });
+    s.appendChild(tabs);
+
+    const L = M.lenses[this.lens];
+    const body = el("div", "body");
+    const grid = el("div", "grid");
+    const n = L.cells.length;
+    const cols = n <= 4 ? 2 : n <= 9 ? 3 : n <= 16 ? 4 : 5;
+    grid.style.gridTemplateColumns = "repeat(" + cols + ",1fr)";
+    const cells = L.cells.map(c => {
+      const d = el("div", "cell " + (c.held ? "held" : "none"));
+      const fill = el("i", "fill"); d.appendChild(fill);
+      d.appendChild(el("div", "cn", c.name));
+      d.appendChild(el("div", "cw", c.held ? DASH : "none"));
+      grid.appendChild(d);
+      return { node: d, fill, val: d.querySelector(".cw"), data: c };
+    });
+    body.appendChild(grid);
+
+    const calls = el("div", "calls");
+    const c1 = statBlock("Held", L.noun + " you touch");
+    const c2 = statBlock("Missing", "no exposure at all");
+    const c3 = statBlock("Biggest gap", "first thing absent, in your order");
+    [c1, c2, c3].forEach(x => calls.appendChild(x));
+    body.appendChild(calls);
+    s.appendChild(body);
+
+    const say = el("p", "say note reveal",
+      L.missing === 0
+        ? "Every one of your " + L.noun + " is represented. Coverage isn't the problem here — concentration might be."
+        : "The dark cells are the point. " + L.missing + " of " + L.cells.length + " " +
+          L.noun + " " + (L.missing === 1 ? "gets" : "get") +
+          " nothing from this book at all.");
+    s.appendChild(say);
+
+    root.appendChild(s);
+    this.r = { cells, c1, c2, c3, say, L };
+  },
+  frame(t){
+    const r = this.r, L = r.L;
+    r.cells.forEach((c, i) => {
+      const p = easeOutQuint(seg(t, 400 + i * 95, 620));
+      c.node.style.opacity = p;
+      c.node.style.transform = "scale(" + (0.955 + 0.045 * p).toFixed(4) + ")";
+      if (c.data.held){
+        c.val.textContent = pct(c.data.weight * p);
+        c.fill.style.height = (c.data.weight / L.max * 100 * p).toFixed(1) + "%";
+      }
+    });
+    const end = 400 + L.cells.length * 95;
+    const pc = easeOutQuint(seg(t, end, 900));
+    reveal(r.c1, easeOutCubic(seg(t, end, 600)));
+    reveal(r.c2, easeOutCubic(seg(t, end + 200, 600)));
+    reveal(r.c3, easeOutCubic(seg(t, end + 400, 600)));
+    setStat(r.c1, Math.round(L.held * pc) + '<span class="sym" style="color:var(--text-3)">/' + L.cells.length + "</span>");
+    setStat(r.c2, String(Math.round(L.missing * easeOutQuint(seg(t, end + 200, 900)))));
+    setStat(r.c3, '<span style="font-size:19px;letter-spacing:0;font-family:var(--f-ui)">' +
+      (L.gap || "none — fully covered") + "</span>");
+    reveal(r.say, easeOutCubic(seg(t, end + 800, 900)));
+  }
+};
+
+/* ────────────────────── SCENE 3 — ETF look-through ───────────────────── */
+const scene3 = {
+  num: "03", name: "Look-through",
+  get dur(){ return 5400 + Math.max(M.etfs.length, M.direct.length, 9) * 130; },
+  mount(root){
+    const s = el("div", "scene s3");
+    root.appendChild(s);            /* in the document early: getTotalLength() needs it */
+    s.appendChild(head("03", "ETF look-through"));
+
+    const body = el("div", "body");
+    s.appendChild(body);
+
+    /* payoff is built first so the body can measure the space actually left */
+    const payoff = el("div", "payoff");
+    const p1 = statBlock("Equity in doubled-up names", "held directly and inside a fund");
+    const p2 = statBlock("Names you own twice");
+    p1.style.minWidth = "236px"; p2.style.minWidth = "184px";
+    payoff.appendChild(p1); payoff.appendChild(p2);
+    const say = el("p", "say note reveal",
+      M.dups.length
+        ? "Opening the funds moves " + M.dups.length + " " + plural(M.dups.length, "name") +
+          " onto both sides of the book. You bought " + plural(M.dups.length, "it", "them") +
+          " once on purpose and once by accident."
+        : "No name appears both directly and inside a fund. The two sides of the book don't overlap — yet.");
+    payoff.appendChild(say);
+    s.appendChild(payoff);
+
+    const BW = body.clientWidth || 1196;
+    const BH = body.clientHeight || 500;
+    const LT = { L0: 0, L1: BW * .255, M0: BW * .358, M1: BW * .646, R0: BW * .748, R1: BW, TOP: 56 };
+
+    const NS = "http://www.w3.org/2000/svg";
+    const svg = document.createElementNS(NS, "svg");
+    svg.setAttribute("class", "wires");
+    svg.setAttribute("viewBox", "0 0 " + BW + " " + BH);
+    svg.setAttribute("preserveAspectRatio", "none");
+    body.appendChild(svg);
+
+    const avail = BH - LT.TOP - 6;
+    const mkCol = (x0, x1, title, count) => {
+      const c = el("div", "col");
+      c.style.left = x0 + "px"; c.style.width = (x1 - x0) + "px";
+      const h = el("div", "col-h");
+      h.appendChild(el("span", "cap", title));
+      h.appendChild(el("span", "n num", String(count)));
+      c.appendChild(h);
+      body.appendChild(c);
+      return c;
+    };
+
+    const etfs = M.etfs.slice().sort((a, b) => b.value - a.value);
+    const direct = M.direct.slice().sort((a, b) => b.value - a.value);
+    const keyOf = h => (h.ticker || h.name.toLowerCase().replace(/[^a-z0-9]/g, ""));
+    const dupKeys = new Set(M.dups.map(d => d.key));
+    /* the "and N more" line needs a slot of its own, or it lands on the payoff */
+    const slots = Math.max(3, Math.floor(avail / 46));
+    const overflow = M.merged.length > slots;
+    const midRows = M.merged.slice(0, overflow ? slots - 1 : M.merged.length);
+    const midTotal = midRows.length + (overflow ? 1 : 0);
+
+    const rowH = (n, cap) => clamp(avail / Math.max(n, 1), 24, cap);
+    const hL = rowH(etfs.length, 88), hR = rowH(direct.length, 68), hM = rowH(midTotal, 56);
+    /* short columns sit centred rather than stranded at the top */
+    const off = (n, h) => LT.TOP + Math.max(0, (avail - n * h) / 2);
+    const yL = off(etfs.length, hL), yR = off(direct.length, hR), yM = off(midTotal, hM);
+
+    const colL = mkCol(LT.L0, LT.L1, "Funds", M.etfs.length);
+    const colM = mkCol(LT.M0, LT.M1, "Merged exposure", M.merged.length);
+    const colR = mkCol(LT.R0, LT.R1, "Direct", M.direct.length);
+
+    const mkRow = (col, y, h, name, val, dup, badge) => {
+      const r = el("div", "lt-row reveal" + (dup ? " dup" : ""));
+      r.style.top = y + "px"; r.style.height = h + "px";
+      r.appendChild(el("div", "nm", name + (badge ? '<span class="tag">both</span>' : "")));
+      r.appendChild(el("div", "mv", val));
+      const bw = el("div", "barwrap"); bw.appendChild(el("i")); r.appendChild(bw);
+      col.appendChild(r);
+      return r;
+    };
+
+    const wt = v => M.equityBase ? pct(v / M.equityBase * 100) : DASH;
+    const rowsL = etfs.map((e, i) => ({
+      node: mkRow(colL, yL + i * hL, hL, e.name, showMoney() ? mny(e.value) : wt(e.value), false, false),
+      y: yL + i * hL + hL / 2, e
+    }));
+    const rowsR = direct.map((d, i) => ({
+      node: mkRow(colR, yR + i * hR, hR, d.name,
+        showMoney() ? mny(d.value) : wt(d.value), dupKeys.has(keyOf(d)), false),
+      y: yR + i * hR + hR / 2, key: keyOf(d)
+    }));
+    const rowsM = midRows.map((m, i) => {
+      const node = mkRow(colM, yM + i * hM, hM, m.name,
+        (showMoney() ? mny(m.total) + "  " : "") + pct(m.weight), m.dup, m.dup);
+      return { node, y: yM + i * hM + hM / 2, m, bar: node.querySelector(".barwrap i") };
+    });
+    if (overflow){
+      const n = M.merged.length - midRows.length;
+      const more = el("div", "lt-row reveal");
+      more.style.top = (yM + midRows.length * hM) + "px";
+      more.style.height = hM + "px";
+      more.appendChild(el("div", "nm", '<span style="color:var(--text-3)">and ' + n +
+        " smaller " + plural(n, "name") + "</span>"));
+      more.appendChild(el("div", "mv", ""));
+      colM.appendChild(more);
+      rowsM.push({ node: more, y: 0, m: null, bar: null });
+    }
+
+    /* wires: fund → merged name, and merged name → the direct holding of the same company */
+    const wires = [];
+    const wire = (x0, y0, x1, y1, accent) => {
+      const p = document.createElementNS(NS, "path");
+      const mx = (x0 + x1) / 2;
+      p.setAttribute("d", "M" + x0 + " " + y0 + "C" + mx + " " + y0 + " " + mx + " " + y1 + " " + x1 + " " + y1);
+      p.setAttribute("fill", "none");
+      p.setAttribute("stroke", accent ? "var(--accent)" : "var(--line)");
+      p.setAttribute("stroke-width", accent ? 1.5 : .9);
+      p.setAttribute("opacity", accent ? .9 : .45);
+      svg.appendChild(p);
+      let len = 400;
+      try { len = p.getTotalLength() || 400; } catch (err) {}
+      p.style.strokeDasharray = len; p.style.strokeDashoffset = len;
+      wires.push({ node: p, len });
+    };
+    const midByKey = {}; rowsM.forEach(r => { if (r.m) midByKey[r.m.key] = r; });
+    rowsL.forEach(r => {
+      const feeds = r.e.constituents.map(c => midByKey[keyOf(c)]).filter(Boolean);
+      if (feeds.length) feeds.forEach(f => wire(LT.L1, r.y, LT.M0, f.y, f.m.dup));
+      else wire(LT.L1, r.y, LT.M0, yM + 18, false);
+    });
+    rowsR.forEach(r => {
+      const f = midByKey[r.key];
+      wire(LT.R0, r.y, LT.M1, f ? f.y : yM + 18, !!(f && f.m.dup));
+    });
+
+    this.r = { rowsL, rowsM, rowsR, wires, p1, p2, say };
+  },
+  frame(t){
+    const r = this.r;
+    r.rowsL.forEach((x, i) => reveal(x.node, easeOutCubic(seg(t, 350 + i * 130, 700))));
+    const t2 = 350 + r.rowsL.length * 130 + 200;
+    r.rowsR.forEach((x, i) => reveal(x.node, easeOutCubic(seg(t, t2 + i * 130, 700))));
+    const t3 = t2 + r.rowsR.length * 130 + 250;
+    r.rowsM.forEach((x, i) => {
+      const p = easeOutCubic(seg(t, t3 + i * 130, 700));
+      reveal(x.node, p);
+      if (x.bar && x.m && M.merged.length){
+        const top = M.merged[0].total || 1;
+        x.bar.style.width = (x.m.total / top * 100 * p).toFixed(1) + "%";
+      }
+    });
+    const t4 = t3 + r.rowsM.length * 130;
+    r.wires.forEach((w, i) => {
+      const p = easeOutCubic(seg(t, t4 + (i % 6) * 90, 1300));
+      w.node.style.strokeDashoffset = (w.len * (1 - p)).toFixed(1);
+    });
+    const t5 = t4 + 1000;
+    reveal(r.p1, easeOutCubic(seg(t, t5, 700)));
+    reveal(r.p2, easeOutCubic(seg(t, t5 + 200, 700)));
+    setStat(r.p1, isFinite(M.dupPctEquity)
+      ? pct(M.dupPctEquity * easeOutQuint(seg(t, t5, 1400))) : DASH);
+    setStat(r.p2, String(Math.round(M.dups.length * easeOutQuint(seg(t, t5 + 200, 1200)))));
+    reveal(r.say, easeOutCubic(seg(t, t5 + 500, 900)));
+  }
+};
+
+/* ─────────────────────── SCENE 4 — Geography ─────────────────────────── */
+const scene4 = {
+  num: "04", name: "Geography", dur: 7000,
+  mount(root){
+    const s = el("div", "scene s4");
+    s.appendChild(head("04", "Geography"));
+    const body = el("div", "body");
+
+    const g = el("div", "globe");
+    const cv = document.createElement("canvas");
+    g.appendChild(cv);
+    body.appendChild(g);
+
+    const right = el("div", "gpanel");
+    right.appendChild(el("span", "cap", "Largest single-country exposure"));
+    const hl = el("h1", "fig headline accent num", DASH);
+    right.appendChild(hl);
+    const cn = el("div", "country reveal",
+      (M.topCountry ? M.topCountry.name : DASH) +
+      (M.topCountry ? '<span class="cc">' + M.topCountry.a3 + "</span>" : ""));
+    right.appendChild(cn);
+
+    const topPct = M.topCountry ? M.topCountry.pct : NaN;
+    const say = el("p", "say note reveal", !M.topCountry
+      ? "No country exposure has been attributed yet."
+      : (M.topCountry.a3 === M.home.iso3
+          ? "Your largest exposure is the country you already live, earn and spend in. A local shock would hit your salary, your currency and " + pct(topPct) + " of your book at the same time."
+          : pct(topPct) + " of the book sits in one country — " + M.topCountry.name +
+            ", which is not where you live. One market's rules, currency and politics set the tone for the whole thing."));
+    right.appendChild(say);
+
+    const runners = el("div", "runners");
+    const rrows = M.countries.slice(0, 4).map(c => {
+      const r = el("div", "runner reveal");
+      r.appendChild(el("span", null, c.name + (c.a3 === M.home.iso3 ? " · home" : "")));
+      r.appendChild(el("span", "rv num", pct(c.pct)));
+      runners.appendChild(r); return r;
+    });
+    right.appendChild(runners);
+
+    const jump = el("a", "jump reveal",
+      'Open the full exposure map<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M5 12h14M13 6l6 6-6 6"/></svg>');
+    jump.href = "#/map";
+    right.appendChild(jump);
+    body.appendChild(right);
+    s.appendChild(body);
+    root.appendChild(s);
+
+    this.r = { cv, hl, cn, say, rrows, jump, g };
+  },
+  frame(t){
+    const r = this.r;
+    /* headline count-up */
+    const p = easeOutQuint(seg(t, 600, 2600));
+    const topPct = M.topCountry ? M.topCountry.pct : NaN;
+    r.hl.innerHTML = isFinite(topPct)
+      ? (topPct * p).toFixed(1) + '<span class="sym">%</span>'
+      : awaiting("Awaiting country tags");
+    reveal(r.cn, easeOutCubic(seg(t, 2200, 900)));
+    reveal(r.say, easeOutCubic(seg(t, 2900, 1000)));
+    r.rrows.forEach((x, i) => reveal(x, easeOutCubic(seg(t, 3500 + i * 200, 800))));
+    reveal(r.jump, easeOutCubic(seg(t, 4600, 900)));
+
+    /* globe: home country centred at t=0, then a slow steady turn */
+    if (t - (this._painted || -1e9) < 48) return;      /* ~20fps is plenty for this speed */
+    this._painted = t;
+    const cv = r.cv, box = r.g;
+    const W = box.clientWidth || 560, H = box.clientHeight || 560;
+    const dpr = Math.min(window.devicePixelRatio || 1, 2);
+    if (cv.width !== Math.round(W * dpr)){ cv.width = Math.round(W * dpr); cv.height = Math.round(H * dpr); }
+    const ctx = cv.getContext("2d");
+    ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+    const c0 = M.homeCentroid;
+    const baseLon = c0 ? c0[0] : 10, baseLat = c0 ? clamp(c0[1] * .6, -32, 32) : 14;
+    const spin = REDUCED ? 0 : (t / 1000) * 7.2;                 /* 50s per revolution */
+    drawGlobe(ctx, W, H, baseLon + spin, baseLat, {
+      ocean: PAINT.ink2, grat: PAINT.line2, rim: PAINT.line, shade: PAINT.shade,
+      country: a3 => a3 === M.home.iso3
+        ? { fill: PAINT.accent, stroke: PAINT.accent }
+        : { fill: M.countryValue[a3] ? PAINT.ink3 : PAINT.void, stroke: PAINT.line2 }
+    });
+  }
+};
+
+const SCENES = [scene0, scene1, scene2, scene3, scene4];
+</script>
+<script>
+/* ══════════════════════════════════════════════════════════════════════════
+   PAINT — resolve CSS custom properties to concrete colours for <canvas>
+   ═══════════════════════════════════════════════════════════════════════ */
+const _probe = el("span");
+_probe.style.cssText = "position:absolute;visibility:hidden;pointer-events:none";
+function cssColor(root, name){
+  root.appendChild(_probe);
+  _probe.style.color = "";
+  _probe.style.color = "var(" + name + ")";
+  const c = getComputedStyle(_probe).color;
+  _probe.remove();
+  return c;
+}
+let PAINT = null;
+function buildPaint(root){
+  const k = n => cssColor(root, n);
+  PAINT = { accent: k("--accent"), trace: k("--trace"), void: k("--void"),
+            ink: k("--ink"), ink2: k("--ink-2"), ink3: k("--ink-3"),
+            line: k("--line"), line2: k("--line-2"), shade: k("--shade"),
+            text3: k("--text-3") };
+  return PAINT;
+}
+const rgbOf = s => (s.match(/[\d.]+/g) || [0,0,0]).slice(0,3).map(Number);
+function lerpColor(a, b, k){
+  const A = rgbOf(a), B = rgbOf(b);
+  return "rgb(" + A.map((v,i) => Math.round(v + (B[i]-v)*clamp(k,0,1))).join(",") + ")";
+}
+
+/* ══════════════════════════════════════════════════════════════════════════
+   DECK
+   ═══════════════════════════════════════════════════════════════════════ */
+const Deck = {
+  i: 0, root: null, canvas: null, orient: "landscape",
+
+  render(){
+    const root = document.getElementById("root");
+    root.innerHTML = "";
+    const app = el("div", "app");
+    app.dataset.theme = Store.theme;
+    app.dataset.values = V.money ? "money" : "pct";
+
+    /* chrome */
+    const chrome = el("header", "chrome");
+    const mark = el("div", "mark");
+    mark.appendChild(el("i", "dot"));
+    mark.appendChild(el("span", "name", txt(DATA.title) || "Portfolio"));
+    mark.appendChild(el("span", "asof cap", txt(DATA.asOf) || ""));
+    chrome.appendChild(mark);
+
+    const tools = el("div", "tools");
+    const segV = el("div", "seg");
+    const bMoney = el("button", "tool", (M.sym || "$") + " values");
+    const bPct = el("button", "tool", "% only");
+    bMoney.setAttribute("aria-pressed", V.money ? "true" : "false");
+    bPct.setAttribute("aria-pressed", V.money ? "false" : "true");
+    bMoney.onclick = () => { if (!V.money){ V.money = true; Deck.render(); } };
+    bPct.onclick = () => { if (V.money){ V.money = false; Deck.render(); } };
+    segV.appendChild(bMoney); segV.appendChild(bPct);
+    tools.appendChild(segV);
+
+    const bTheme = el("button", "tool",
+      (Store.theme === "dark" ? sunIcon() : moonIcon()) +
+      (Store.theme === "dark" ? "Light" : "Dark"));
+    bTheme.onclick = () => { Store.theme = Store.theme === "dark" ? "light" : "dark"; Deck.render(); };
+    tools.appendChild(bTheme);
+
+    const bReplay = el("button", "tool", replayIcon() + "Replay");
+    bReplay.onclick = () => Deck.replay();
+    tools.appendChild(bReplay);
+    chrome.appendChild(tools);
+    app.appendChild(chrome);
+
+    /* stage */
+    const stage = el("main", "stage");
+    const prev = el("button", "nav prev",
+      '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M15 5l-7 7 7 7"/></svg>');
+    const next = el("button", "nav next",
+      '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M9 5l7 7-7 7"/></svg>');
+    prev.setAttribute("aria-label", "Previous scene");
+    next.setAttribute("aria-label", "Next scene");
+    prev.onclick = () => Deck.go(Deck.i - 1);
+    next.onclick = () => Deck.go(Deck.i + 1);
+    prev.disabled = Deck.i === 0;
+    next.disabled = Deck.i === SCENES.length - 1;
+    const pane = el("div", "pane");
+    const canvas = el("div", "canvas");
+    pane.appendChild(canvas);
+    stage.appendChild(prev); stage.appendChild(pane); stage.appendChild(next);
+    app.appendChild(stage);
+
+    /* rail */
+    const rail = el("footer", "rail");
+    const track = el("div", "rail-track");
+    SCENES.forEach((sc, i) => {
+      const b = el("button", "rail-item");
+      b.setAttribute("aria-current", i === Deck.i ? "true" : "false");
+      b.setAttribute("aria-label", "Scene " + sc.num + ", " + sc.name);
+      const bar = el("div", "bar"); bar.appendChild(el("i"));
+      b.appendChild(bar);
+      b.appendChild(el("span", "tick"));
+      b.appendChild(el("span", "rn", sc.num));
+      b.appendChild(el("span", "rl", sc.name));
+      b.onclick = () => Deck.go(i);
+      track.appendChild(b);
+    });
+    rail.appendChild(track);
+    app.appendChild(rail);
+
+    root.appendChild(app);
+    this.root = app; this.canvas = canvas;
+    refreshRamp(); buildPaint(app);
+    derive();                                   /* colours depend on the ramp */
+    this.mount(false);
+    if (UNFILLED && !Store.noticeDismissed) this.notice(app);
+    fit();
+  },
+
+  mount(keepTime){
+    this.canvas.innerHTML = "";
+    fitOrient(); fit();
+    const sc = SCENES[this.i];
+    sc.mount(this.canvas);
+    const bars = this.root.querySelectorAll(".rail-item .bar i");
+    (keepTime ? Clock.attach : Clock.run).call(Clock, t => {
+      sc.frame(REDUCED ? sc.dur : t);
+      const p = clamp((REDUCED ? sc.dur : t) / sc.dur, 0, 1);
+      bars.forEach((b, i) => b.style.width = i < Deck.i ? "100%" : i === Deck.i ? (p * 100) + "%" : "0%");
+    });
+  },
+  remount(keepTime){ this.mount(keepTime); fit(); },
+  go(i){
+    i = clamp(i, 0, SCENES.length - 1);
+    if (i === this.i) return;
+    this.i = i;
+    this.render();
+  },
+  replay(){ Clock.restart(); },
+
+  notice(app){
+    const n = el("div", "todo");
+    n.appendChild(el("h4", null, UNFILLED + " " + plural(UNFILLED, "figure") + " still to fill in"));
+    n.appendChild(el("p", null,
+      "Open this file and edit the <code>DATA</code> block at the top. Anything left in " +
+      "<code>[BRACKETS]</code> shows as an em dash. Nothing here is invented."));
+    const b = el("button", "tool", "Got it");
+    b.onclick = () => { Store.noticeDismissed = true; n.remove(); };
+    n.appendChild(b);
+    app.appendChild(n);
+  }
+};
+
+const Store = { theme: "dark", noticeDismissed: false };
+const sunIcon = () => '<svg viewBox="0 0 24 24" width="13" height="13" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="4"/><path d="M12 2v2M12 20v2M4.9 4.9l1.4 1.4M17.7 17.7l1.4 1.4M2 12h2M20 12h2M4.9 19.1l1.4-1.4M17.7 6.3l1.4-1.4"/></svg>';
+const moonIcon = () => '<svg viewBox="0 0 24 24" width="13" height="13" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 12.8A9 9 0 1111.2 3a7 7 0 009.8 9.8z"/></svg>';
+const replayIcon = () => '<svg viewBox="0 0 24 24" width="13" height="13" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 12a9 9 0 109-9"/><path d="M3 4v5h5"/></svg>';
+
+/* ---------- the design canvas takes the pane's aspect, then scales to fill ----------
+   Fixing the width and deriving the height from the pane means a scene is never
+   letterboxed and never clipped, whatever the window shape.                        */
+function fitOrient(){
+  const pane = $(".pane"); if (!pane || !Deck.canvas) return;
+  const pw = Math.max(pane.clientWidth, 1), ph = Math.max(pane.clientHeight, 1);
+  const portrait = ph / pw > 1.02;
+  Deck.orient = portrait ? "portrait" : "landscape";
+  Deck.canvas.dataset.orient = Deck.orient;
+  const W = portrait ? 460 : 1300;
+  const H = clamp(Math.round(W * ph / pw), portrait ? 640 : 620, portrait ? 1200 : 980);
+  Deck.cw = W; Deck.ch = H;
+  Deck.canvas.style.width = W + "px";
+  Deck.canvas.style.height = H + "px";
+}
+function fit(){
+  const pane = $(".pane"), c = Deck.canvas;
+  if (!pane || !c || !Deck.cw) return;
+  const s = Math.min(pane.clientWidth / Deck.cw, pane.clientHeight / Deck.ch);
+  c.style.transform = "translate(-50%,-50%) scale(" + s + ")";
+}
+let resizeTimer = null;
+window.addEventListener("resize", () => {
+  if ($(".pane")){
+    fitOrient(); fit();                       /* instant, so nothing clips mid-drag */
+    clearTimeout(resizeTimer);
+    resizeTimer = setTimeout(() => Deck.remount(true), 180);   /* then relay out, same time */
+  } else if (MapPage.live){
+    clearTimeout(resizeTimer);
+    resizeTimer = setTimeout(() => MapPage.draw(), 120);
+  }
+});
+
+/* keyboard */
+window.addEventListener("keydown", e => {
+  if (e.metaKey || e.ctrlKey || e.altKey) return;
+  if (location.hash === "#/map"){
+    if (e.key === "Escape" || e.key === "ArrowLeft"){ location.hash = ""; }
+    else if (e.key === "t" || e.key === "T"){
+      Store.theme = Store.theme === "dark" ? "light" : "dark"; MapPage.render(); }
+    else if (e.key === "v" || e.key === "V"){ V.money = !V.money; MapPage.render(); }
+    return;
+  }
+  if (e.key === "ArrowRight"){ Deck.go(Deck.i + 1); e.preventDefault(); }
+  else if (e.key === "ArrowLeft"){ Deck.go(Deck.i - 1); e.preventDefault(); }
+  else if (e.key === "r" || e.key === "R"){ Deck.replay(); }
+  else if (e.key === "t" || e.key === "T"){ Store.theme = Store.theme === "dark" ? "light" : "dark"; Deck.render(); }
+  else if (e.key === "v" || e.key === "V"){ V.money = !V.money; Deck.render(); }
+});
+
+/* ══════════════════════════════════════════════════════════════════════════
+   STANDALONE PAGE — full exposure map
+   ═══════════════════════════════════════════════════════════════════════ */
+const MapPage = {
+  live: false, cv: null, wrap: null,
+
+  colourFor(a3){
+    const v = M.countryValue[a3];
+    if (!v || !M.T) return { fill: PAINT.void, stroke: PAINT.line2, band: "none" };
+    const p = v / M.T * 100;
+    const thr = n0(DATA.traceThreshold) || 1;
+    if (p < thr) return { fill: PAINT.trace, stroke: PAINT.line, band: "trace" };
+    const max = M.topCountry ? M.topCountry.pct : p;
+    const k = max > thr ? (p - thr) / (max - thr) : 1;
+    return { fill: lerpColor(PAINT.trace, PAINT.accent, .42 + .58 * k),
+             stroke: PAINT.accent, band: "full" };
+  },
+
+  render(){
+    const root = document.getElementById("root");
+    root.innerHTML = "";
+    const app = el("div", "app mapview");
+    app.dataset.theme = Store.theme;
+    root.appendChild(app);
+    refreshRamp(); buildPaint(app); derive();
+
+    const chrome = el("header", "chrome");
+    const back = el("a", "jump", '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M19 12H5M11 18l-6-6 6-6"/></svg>Back to the deck');
+    back.href = "#";
+    back.style.padding = "8px 14px";
+    chrome.appendChild(back);
+    const tools = el("div", "tools");
+    const segV = el("div", "seg");
+    const bMoney = el("button", "tool", (M.sym || "$") + " values");
+    const bPct = el("button", "tool", "% only");
+    bMoney.setAttribute("aria-pressed", V.money ? "true" : "false");
+    bPct.setAttribute("aria-pressed", V.money ? "false" : "true");
+    bMoney.onclick = () => { V.money = true; MapPage.render(); };
+    bPct.onclick = () => { V.money = false; MapPage.render(); };
+    segV.appendChild(bMoney); segV.appendChild(bPct);
+    tools.appendChild(segV);
+    const bTheme = el("button", "tool",
+      (Store.theme === "dark" ? sunIcon() : moonIcon()) + (Store.theme === "dark" ? "Light" : "Dark"));
+    bTheme.onclick = () => { Store.theme = Store.theme === "dark" ? "light" : "dark"; MapPage.render(); };
+    tools.appendChild(bTheme);
+    chrome.appendChild(tools);
+    app.appendChild(chrome);
+
+    const wrap = el("div", "mapwrap");
+    const field = el("div", "mapfield");
+    const cv = document.createElement("canvas");
+    field.appendChild(cv);
+    wrap.appendChild(field);
+
+    const panel = el("div", "mappanel");
+    panel.appendChild(el("span", "cap", "Largest single-country exposure"));
+    panel.appendChild(el("h1", "fig headline accent num",
+      M.topCountry ? pct(M.topCountry.pct) : DASH));
+    panel.appendChild(el("div", "hcountry", M.topCountry ? M.topCountry.name : DASH));
+
+    const sec = el("div", "stat");
+    sec.appendChild(el("span", "k cap", "Held outside " +
+      (txt(DATA.currency && DATA.currency.code) || "the home currency")));
+    sec.appendChild(el("div", "v", V.money
+      ? (isFinite(M.outsideValue) ? mny(M.outsideValue) : DASH)
+      : (isFinite(M.outsidePct) ? pct(M.outsidePct) : DASH)));
+    sec.appendChild(el("div", "s", (isFinite(M.outsidePct) ? pct(M.outsidePct) + " of the book · " : "") +
+      (M.outsideIsEstimate ? "estimated from country exposure" : "as declared")));
+    panel.appendChild(sec);
+
+    const key = el("div", "legend-key");
+    const krow = (colour, label, outline) => {
+      const r = el("div", "keyrow");
+      const sw = el("i", "sw");
+      sw.style.background = colour;
+      if (outline) sw.style.boxShadow = "inset 0 0 0 1px " + PAINT.line;
+      r.appendChild(sw); r.appendChild(el("span", null, label));
+      key.appendChild(r);
+    };
+    const thr = n0(DATA.traceThreshold) || 1;
+    krow(PAINT.accent, "Full exposure — " + pct(thr, 1) + " of the book or more");
+    krow(PAINT.trace, "Trace exposure — under " + pct(thr, 1));
+    krow(PAINT.void, "No exposure", true);
+    panel.appendChild(key);
+
+    const ranked = el("div", "ranked");
+    if (!M.countries.length){
+      ranked.appendChild(el("p", "note", "No country exposure attributed yet. Tag your holdings with iso3 codes to fill this map."));
+    }
+    M.countries.forEach(c => {
+      const r = el("div", "rank-row" + (c.a3 === M.home.iso3 ? " home" : ""));
+      const sw = el("i", "sw");
+      sw.style.background = this.colourFor(c.a3).fill;
+      r.appendChild(sw);
+      r.appendChild(el("span", "rn", c.name + (c.a3 === M.home.iso3 ? " · home" : "")));
+      r.appendChild(el("span", "rv", V.money ? mny(c.value) + "  " + pct(c.pct) : pct(c.pct)));
+      ranked.appendChild(r);
+    });
+    if (M.unattributed > 0.5){
+      const r = el("div", "rank-row");
+      const sw = el("i", "sw"); sw.style.background = PAINT.void;
+      sw.style.boxShadow = "inset 0 0 0 1px " + PAINT.line;
+      r.appendChild(sw);
+      r.appendChild(el("span", "rn", '<span style="color:var(--text-3)">Not attributed to a country</span>'));
+      r.appendChild(el("span", "rv", V.money ? mny(M.unattributed) + "  " + pct(M.unattributed / M.T * 100)
+                                             : pct(M.unattributed / M.T * 100)));
+      ranked.appendChild(r);
+    }
+    panel.appendChild(ranked);
+    wrap.appendChild(panel);
+    app.appendChild(wrap);
+
+    this.cv = cv; this.wrap = field; this.live = true;
+    requestAnimationFrame(() => this.draw());
+  },
+
+  draw(){
+    if (!this.cv) return;
+    const box = this.wrap, cv = this.cv;
+    const W = box.clientWidth, H = box.clientHeight;
+    if (!W || !H) return;
+    const dpr = Math.min(window.devicePixelRatio || 1, 2);
+    cv.width = Math.round(W * dpr); cv.height = Math.round(H * dpr);
+    const ctx = cv.getContext("2d");
+    ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+    ctx.fillStyle = PAINT.ink; ctx.fillRect(0, 0, W, H);
+    const f = drawFlatMap(ctx, W, H, { country: a3 => this.colourFor(a3) });
+
+    /* home country labelled in place */
+    box.querySelectorAll(".plabel").forEach(n => n.remove());
+    const c0 = M.home.iso3 ? centroidOf(M.home.iso3) : null;
+    if (c0){
+      const [x, y] = projMap(c0[0], c0[1], f);
+      const lab = el("div", "plabel");
+      lab.appendChild(el("div", "pn", M.home.name));
+      lab.appendChild(el("div", "pv", isFinite(M.homePct) ? pct(M.homePct) : DASH));
+      lab.appendChild(el("div", "stem"));
+      lab.style.left = x + "px";
+      lab.style.top = (y - 46) + "px";
+      box.appendChild(lab);
+    }
+  }
+};
+
+/* ══════════════════════════════════════════════════════════════════════════
+   BOOT + ROUTING
+   ═══════════════════════════════════════════════════════════════════════ */
+function route(){
+  Clock.stop();
+  MapPage.live = false;
+  if (location.hash === "#/map") MapPage.render();
+  else Deck.render();
+}
+window.addEventListener("hashchange", route);
+
+loadGeo();
+loadRegions();
+scanTodos(DATA);
+refreshRamp();
+derive();
+route();
+</script>
+</body>
+</html>
