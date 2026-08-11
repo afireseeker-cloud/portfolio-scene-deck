@@ -7,7 +7,7 @@ underneath, flags what you're doubled up on, and shows what you own none of.
 No install, no build step, no signup, no network calls. Open the file in a browser and
 your numbers stay on your machine.
 
-**[Open the live demo →](https://YOUR-USERNAME.github.io/portfolio-scene-deck/)**
+**[Open the live demo →](https://afireseeker-cloud.github.io/portfolio-scene-deck/)**
 *(runs on made-up figures)*
 
 ![ETF look-through](docs/lookthrough.png)
